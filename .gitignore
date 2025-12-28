@@ -13,10 +13,7 @@ build/
 .env.local
 
 # Data files
-data/raw/wiki-dumps/*
-data/processed/*
-!data/raw/wiki-dumps/.gitkeep
-!data/processed/.gitkeep
+src/database/data/*
 
 # IDE
 .vscode/
