@@ -1,4 +1,6 @@
 import inquirer from "inquirer";
+import { importCategoryLinksMySQL } from "./utils/categories/categoryImport";
+import { importPagesMySQL } from "./utils/categories/pagesimport";
 
 async function main() {
   console.log("Welcome to the Babeonym Setup!\n");
@@ -11,21 +13,13 @@ async function main() {
         type: "select",
         name: "mainChoice",
         message: "What would you like to do?",
-        choices: [
-          "Wikipedia Categories",
-          "Wikipedia Articles",
-          "Names",
-          "Exit",
-        ],
+        choices: ["Wikipedia", "Names", "Exit"],
       },
     ]);
 
     switch (mainChoice) {
-      case "Wikipedia Categories":
-        await wikipediaCategoriesMenu();
-        break;
-      case "Wikipedia Articles":
-        await wikipediaArticlesMenu();
+      case "Wikipedia":
+        await wikipediaMenu();
         break;
       case "Names":
         await namesMenu();
@@ -38,7 +32,7 @@ async function main() {
   }
 }
 
-async function wikipediaCategoriesMenu() {
+async function wikipediaMenu() {
   const { action } = await inquirer.prompt([
     {
       type: "select",
@@ -46,8 +40,8 @@ async function wikipediaCategoriesMenu() {
       message:
         "Wikipedia Categories - Select action:",
       choices: [
-        "Generate category tables",
         "Seed category tables",
+        "Seed pages tables",
         "Query category tables",
         "Back to main menu",
       ],
@@ -55,17 +49,15 @@ async function wikipediaCategoriesMenu() {
   ]);
 
   switch (action) {
-    case "Generate category tables":
-      console.log(
-        "\n→ Generating category tables..."
-      );
-      // Your function will go here
-      break;
     case "Seed category tables":
       console.log(
         "\n→ Seeding category tables..."
       );
-      // Your function will go here
+      await importCategoryLinksMySQL();
+      break;
+    case "Seed pages tables":
+      console.log("\n→ Seeding pages tables...");
+      await importPagesMySQL();
       break;
     case "Query category tables":
       console.log(
