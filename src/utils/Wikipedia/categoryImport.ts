@@ -7,7 +7,7 @@ interface ImportOptions {
   user?: string;
 }
 
-export async function importCategoryLinksMySQL(
+export default async function importCategoryLinksMySQL(
   options: ImportOptions = {}
 ) {
   const {

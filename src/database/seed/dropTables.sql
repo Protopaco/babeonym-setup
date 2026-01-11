@@ -1,0 +1,19 @@
+-- Drop tables (order doesn't matter with CASCADE)
+DROP TABLE IF EXISTS user_settings CASCADE;
+DROP TABLE IF EXISTS user_given_names_states CASCADE;
+DROP TABLE IF EXISTS era_decades CASCADE;
+DROP TABLE IF EXISTS given_name_ratings CASCADE;
+DROP TABLE IF EXISTS given_name_occurrences CASCADE;
+DROP TABLE IF EXISTS given_name_popularity_by_decade CASCADE;
+DROP TABLE IF EXISTS given_names CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS themes CASCADE;
+DROP TABLE IF EXISTS eras CASCADE;
+DROP TABLE IF EXISTS decades CASCADE;
+DROP TABLE IF EXISTS languages CASCADE;
+DROP TABLE IF EXISTS cultures CASCADE;
+DROP TABLE IF EXISTS given_name_etymology CASCADE;
+
+-- Drop custom types
+DROP TYPE IF EXISTS given_name_state CASCADE;
+DROP TYPE IF EXISTS genders CASCADE;

@@ -1,6 +1,9 @@
 import inquirer from "inquirer";
-import { importCategoryLinksMySQL } from "./utils/categories/categoryImport";
-import { importPagesMySQL } from "./utils/categories/pagesimport";
+import importCategoryLinksMySQL from "./utils/Wikipedia/categoryImport";
+import importPagesMySQL from "./utils/Wikipedia/pagesimport";
+import createNameTable from "./utils/Name/createNameTable";
+import populateNamePopularity from "./utils/Name/populateNamePopularity";
+import seedNameTables from "./utils/Name/seedNameTables";
 
 async function main() {
   console.log("Welcome to the Babeonym Setup!\n");
@@ -110,10 +113,7 @@ async function namesMenu() {
       choices: [
         "Generate name tables",
         "Seed name tables",
-        "Generate name occurrences",
         "Generate name popularity",
-        "Assign name gender",
-        "Name popularity by decade",
         "Back to main menu",
       ],
     },
@@ -124,33 +124,23 @@ async function namesMenu() {
       console.log(
         "\n→ Generating name tables..."
       );
-      // Your function will go here
+      await createNameTable();
       break;
     case "Seed name tables":
       console.log("\n→ Seeding name tables...");
-      // Your function will go here
-      break;
-    case "Generate name occurrences":
-      console.log(
-        "\n→ Generating name occurrences..."
-      );
-      // Your function will go here
+      await seedNameTables();
       break;
     case "Generate name popularity":
       console.log(
         "\n→ Generating name popularity..."
       );
-      // Your function will go here
+      await populateNamePopularity();
       break;
-    case "Assign name gender":
-      console.log("\n→ Assigning name gender...");
-      // Your function will go here
-      break;
-    case "Name popularity by decade":
-      console.log(
-        "\n→ Calculating name popularity by decade..."
-      );
-      // Your function will go here
+    case "Run All":
+      console.log("\n→ Running all name setup tasks...");
+      await createNameTable();
+      await seedNameTables();
+      await populateNamePopularity();
       break;
     case "Back to main menu":
       return;

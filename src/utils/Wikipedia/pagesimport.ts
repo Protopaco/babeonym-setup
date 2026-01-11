@@ -6,7 +6,7 @@ interface ImportOptions {
   user?: string;
 }
 
-export async function importPagesMySQL(
+export default async function importPagesMySQL(
   options: ImportOptions = {}
 ) {
   const {
