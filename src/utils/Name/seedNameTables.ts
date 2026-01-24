@@ -1,7 +1,8 @@
 import logWithTime from "../logWithTime"
 import fs from 'fs';
 import path from 'path';
-import { query } from "../pool";
+import { query } from "../postGresPool";
+
 
 const dbNamePath = path.join(__dirname, '../../database/data/names/');
 

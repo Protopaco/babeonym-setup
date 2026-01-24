@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { query } from "./pool";
+import { query } from "./postGresPool";
 
 export default async (sqlPath: string) => {
   const sql = readFileSync(sqlPath, "utf-8");

@@ -1,13 +1,23 @@
 import inquirer from "inquirer";
-import importCategoryLinksMySQL from "./utils/Wikipedia/categoryImport";
-import importPagesMySQL from "./utils/Wikipedia/pagesimport";
 import createNameTable from "./utils/Name/createNameTable";
 import populateNamePopularity from "./utils/Name/populateNamePopularity";
 import seedNameTables from "./utils/Name/seedNameTables";
+import importLargeSQL from "./utils/importLargeSQL";
 
-async function main() {
-  console.log("Welcome to the Babeonym Setup!\n");
 
+const basePath = "/Volumes/Babeonym/Babeonym/babeonym-setup/src/database/data/wikipedia/"
+const wikipediaFiles = [
+  { name: "Create Query Tables", fileName: "wikipedia_schema.sql" },
+  { name: "Seed All Titles Table", fileName: "enwiki-latest-all-titles.sql" },
+  { name: "Seed Categories Table", fileName: "enwiki-latest-category.sql" },
+  { name: "Seed Category Links Table", fileName: "enwiki-latest-categorylinks.sql" },
+  { name: "Seed Page Props Table", fileName: "enwiki-latest-page_props.sql" },
+  { name: "Seed Redirect Table", fileName: "enwiki-latest-redirect.sql" },
+  { name: "Seed Page Links Table", fileName: "enwiki-latest-pagelinks.sql" },
+  { name: "Seed Pages Table", fileName: "enwiki-latest-pages-articles.sql" },
+]
+console.log("Welcome to the Babeonym Setup!\n");
+const main = async () => {
   let exit = false;
 
   while (!exit) {
@@ -33,43 +43,25 @@ async function main() {
         break;
     }
   }
-}
 
-async function wikipediaMenu() {
-  const { action } = await inquirer.prompt([
-    {
-      type: "select",
-      name: "action",
-      message:
-        "Wikipedia Categories - Select action:",
-      choices: [
-        "Seed category tables",
-        "Seed pages tables",
-        "Query category tables",
-        "Back to main menu",
-      ],
-    },
-  ]);
 
-  switch (action) {
-    case "Seed category tables":
-      console.log(
-        "\n→ Seeding category tables..."
-      );
-      await importCategoryLinksMySQL();
-      break;
-    case "Seed pages tables":
-      console.log("\n→ Seeding pages tables...");
-      await importPagesMySQL();
-      break;
-    case "Query category tables":
-      console.log(
-        "\n→ Querying category tables..."
-      );
-      // Your function will go here
-      break;
-    case "Back to main menu":
-      return;
+  async function wikipediaMenu() {
+    const { action } = await inquirer.prompt([
+      {
+        type: "select",
+        name: "action",
+        message:
+          "Wikipedia Categories - Select action:",
+        choices: wikipediaFiles.map(file => file.name)
+      },
+    ]);
+
+    const choice = wikipediaFiles.find(file => file.name === action);
+    if (choice) {
+      await importLargeSQL(basePath + choice.fileName);
+    }
+    else { console.log("Invalid choice"); }
+
   }
 }
 
@@ -102,6 +94,7 @@ async function wikipediaArticlesMenu() {
     case "Back to main menu":
       return;
   }
+
 }
 
 async function namesMenu() {
