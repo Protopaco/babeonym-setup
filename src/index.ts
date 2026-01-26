@@ -1,8 +1,14 @@
 import inquirer from "inquirer";
-import createNameTable from "./utils/Name/createNameTable";
-import populateNamePopularity from "./utils/Name/populateNamePopularity";
-import seedNameTables from "./utils/Name/seedNameTables";
 import importLargeSQL from "./utils/importLargeSQL";
+import path from "path";
+import runSQL from "./utils/runSQL";
+import getFileNamesInFolder from "./utils/getFileNamesInFolder";
+import seedNameTables from "./utils/Name/seedNameTables";
+import populateNamePopularity from "./utils/Name/populateNamePopularity";
+
+const postgreBasePath = path.join(__dirname, 'database', 'postGres');
+const postgreFiles = getFileNamesInFolder(postgreBasePath);
+
 
 
 const basePath = "/Volumes/Babeonym/Babeonym/babeonym-setup/src/database/data/wikipedia/"
@@ -16,6 +22,7 @@ const wikipediaFiles = [
   { name: "Seed Page Links Table", fileName: "enwiki-latest-pagelinks.sql" },
   { name: "Seed Pages Table", fileName: "enwiki-latest-pages-articles.sql" },
 ]
+
 console.log("Welcome to the Babeonym Setup!\n");
 const main = async () => {
   let exit = false;
@@ -26,7 +33,7 @@ const main = async () => {
         type: "select",
         name: "mainChoice",
         message: "What would you like to do?",
-        choices: ["Wikipedia", "Names", "Exit"],
+        choices: ["Names", "Exit"],
       },
     ]);
 
@@ -104,39 +111,50 @@ async function namesMenu() {
       name: "action",
       message: "Names - Select action:",
       choices: [
-        "Generate name tables",
-        "Seed name tables",
-        "Generate name popularity",
+        "Run One",
+        "Run All",
+        "Seed Name Tables",
+        "Populate Name Popularity",
         "Back to main menu",
       ],
     },
   ]);
 
   switch (action) {
-    case "Generate name tables":
-      console.log(
-        "\n→ Generating name tables..."
-      );
-      await createNameTable();
-      break;
-    case "Seed name tables":
-      console.log("\n→ Seeding name tables...");
-      await seedNameTables();
-      break;
-    case "Generate name popularity":
-      console.log(
-        "\n→ Generating name popularity..."
-      );
-      await populateNamePopularity();
+    case "Run One":
+      const { fileToRun } = await inquirer.prompt([
+        {
+          type: "select",
+          name: "fileToRun",
+          message: "Select SQL file to run:",
+          choices: postgreFiles,
+        },
+      ]);
+      console.log(`\n→ Running ${fileToRun}...`);
+      await runSQL(`${postgreBasePath}/${fileToRun}`);
       break;
     case "Run All":
       console.log("\n→ Running all name setup tasks...");
-      await createNameTable();
+      for (const fileName of postgreFiles) {
+        console.log(`\n→ Running ${fileName}...`);
+        await runSQL(`${postgreBasePath}/${fileName}`);
+      }
+      break;
+    case "Seed Name Tables":
+      console.log("\n→ Seeding name tables...");
       await seedNameTables();
+      break;
+    case "Populate Name Popularity":
+      console.log("\n→ Populating name popularity...");
       await populateNamePopularity();
       break;
     case "Back to main menu":
       return;
+    default:
+      console.log(`\n→ Running ${action}...`);
+      await runSQL(`${postgreBasePath}/${action}`);
+      break;
+
   }
 }
 

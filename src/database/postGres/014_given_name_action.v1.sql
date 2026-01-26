@@ -9,6 +9,6 @@ BEGIN
   VALUES (p_user_id, p_given_custom_name_bridge_id, p_given_name_state)
   ON CONFLICT (user_id, given_custom_name_bridge_id)
   DO UPDATE SET
-    state = EXCLUDED.state
+    state = EXCLUDED.state;
 END;
 $$ LANGUAGE plpgsql;

@@ -17,3 +17,4 @@ BEGIN
     WHERE user_id = p_user_id
     RETURNING user_id, theme, sur_name;
 END;
+$$ LANGUAGE plpgsql;

@@ -5,9 +5,9 @@ CREATE TYPE "given_name_state" AS ENUM (
 );
 
 CREATE TYPE "gender" AS ENUM (
-  'male',
-  'female',
-  'neutral'
+  'Male',
+  'Female',
+  'Neutral'
 );
 
 CREATE TYPE "auth_provider" AS ENUM (

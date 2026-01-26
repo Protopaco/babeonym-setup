@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION create_user(
     p_foreign_id TEXT,
-    p_auth_provider auth_providers,
+    p_auth_provider auth_provider,
     p_email TEXT,
     p_user_name TEXT
 )

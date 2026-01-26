@@ -2,12 +2,12 @@ import logWithTime from "../logWithTime"
 import runSQL from "../runSQL";
 import { resolve } from "path";
 
-const dbSeedPath = '../../database/seed/'
+const dbSeedPath = '../../database/postgres/seed/'
 
 export default async () => {
     try {
         logWithTime('Populating name_popularity_by_decade table...');
-        const namePopularityByDecadePath = resolve(__dirname, dbSeedPath, 'namePopularityByDecade.sql')
+        const namePopularityByDecadePath = resolve(__dirname, dbSeedPath, 'namePopularityByDecade.v1.sql')
         await runSQL(namePopularityByDecadePath);
         logWithTime('name_popularity_by_decade table populated.');
     } catch (err) {
