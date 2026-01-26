@@ -58,17 +58,6 @@ CREATE TABLE "custom_given_names" (
   UNIQUE(user_id, given_name)
 );
 
-CREATE TABLE "user_given_names_states" (
-  "id" SERIAL PRIMARY KEY,
-  "user_id" INT REFERENCES "users" ("id") NOT NULL,
-  "given_custom_name_bridge_id" INT NOT NULL REFERENCES "given_custom_name_bridge" ("id"),
-  "state" given_name_state NOT NULL,
-  "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
-  "date_updated" TIMESTAMP NOT NULL DEFAULT NOW(),
-
-  UNIQUE (user_id, given_custom_name_bridge_id)
-);
-
 CREATE TABLE "given_custom_name_bridge" (
   "id" SERIAL PRIMARY KEY,
   "given_name_id" INT REFERENCES "given_names" ("id") NULL,
@@ -78,6 +67,17 @@ CREATE TABLE "given_custom_name_bridge" (
     OR
     (given_name_id IS NULL AND custom_given_name_id IS NOT NULL)
   )
+);
+
+CREATE TABLE "user_given_names_states" (
+  "id" SERIAL PRIMARY KEY,
+  "user_id" INT REFERENCES "users" ("id") NOT NULL,
+  "given_custom_name_bridge_id" INT NOT NULL REFERENCES "given_custom_name_bridge" ("id"),
+  "state" given_name_state NOT NULL,
+  "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "date_updated" TIMESTAMP NOT NULL DEFAULT NOW(),
+
+  UNIQUE (user_id, given_custom_name_bridge_id)
 );
 
 CREATE TABLE "decades" (
@@ -102,7 +102,8 @@ CREATE TABLE "given_name_occurrences" (
   "year" INT NOT NULL,
   "occurrences" INT NOT NULL,
   "gender" gender NOT NULL,
-  "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+  "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (given_name_id, year, gender)
 );
 
 CREATE TABLE "given_name_popularity_by_decade" (
