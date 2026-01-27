@@ -135,6 +135,15 @@ CREATE TABLE "given_name_etymology" (
   "notes" TEXT
 );
 
+-- Create user_sessions table for session storage
+CREATE TABLE user_sessions (
+    sid VARCHAR NOT NULL COLLATE "default" PRIMARY KEY,
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
+) WITH (OIDS=FALSE);
+
+-- Create index for better performance
+CREATE INDEX idx_user_sessions_expire ON user_sessions(expire);
 
 CREATE UNIQUE INDEX uniq_given_name_bridge
 ON given_custom_name_bridge (given_name_id)
