@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS create_user(
+    p_foreign_id TEXT,
+    p_auth_provider auth_provider,
+    p_email TEXT,
+    p_user_name TEXT
+);
 CREATE OR REPLACE FUNCTION create_user(
     p_foreign_id TEXT,
     p_auth_provider auth_provider,
@@ -5,9 +11,9 @@ CREATE OR REPLACE FUNCTION create_user(
     p_user_name TEXT
 )
 RETURNS TABLE (
-    id INT,
-    email TEXT,
-    user_name TEXT
+    out_id INT,
+    out_email TEXT,
+    out_user_name TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -29,18 +35,18 @@ BEGIN
             NOW()
         )
         ON CONFLICT (email) DO NOTHING
-        RETURNING id, email, user_name
+        RETURNING users.id, users.email, users.user_name
     ),
     inserted_settings AS (
         INSERT INTO user_settings (
             user_id,
-            theme_id,
+            theme,
             date_created,
             date_updated
         )
         SELECT
             iu.id,
-            1,
+            'light',
             NOW(),
             NOW()
         FROM inserted_user iu

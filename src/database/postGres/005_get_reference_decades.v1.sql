@@ -1,8 +1,9 @@
+DROP FUNCTION IF EXISTS get_reference_decades();
 CREATE OR REPLACE FUNCTION get_reference_decades()
 RETURNS TABLE (
-  id INT,
-  decade INT,
-  label TEXT
+  out_id INT,
+  out_decade INT,
+  out_label TEXT
 ) AS $$
 BEGIN
   RETURN QUERY

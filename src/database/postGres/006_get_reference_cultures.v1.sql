@@ -1,8 +1,8 @@
-
+DROP FUNCTION IF EXISTS get_reference_cultures();
 CREATE OR REPLACE FUNCTION get_reference_cultures()
 RETURNS TABLE (
-  id INT,
-  name TEXT
+  out_id INT,
+  out_name TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
