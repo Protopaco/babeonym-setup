@@ -1,14 +1,16 @@
-
+DROP FUNCTION IF EXISTS get_user(
+    p_user_id INT
+);
 CREATE OR REPLACE FUNCTION get_user(
     p_user_id INT
 )
 RETURNS TABLE (
-    id INT,
-    auth_provider auth_provider,
-    email TEXT,
-    user_name TEXT,
-    theme theme,
-    sur_name TEXT
+    out_id INT,
+    out_auth_provider auth_provider,
+    out_email TEXT,
+    out_user_name TEXT,
+    out_theme theme,
+    out_sur_name TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
