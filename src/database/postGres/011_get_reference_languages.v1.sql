@@ -1,8 +1,9 @@
+DROP FUNCTION IF EXISTS get_reference_languages();
 
 CREATE OR REPLACE FUNCTION get_reference_languages()
 RETURNS TABLE (
-  id INT,
-  name TEXT
+  out_id INT,
+  out_name TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
