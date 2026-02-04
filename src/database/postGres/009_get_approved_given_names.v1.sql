@@ -6,14 +6,12 @@ CREATE OR REPLACE FUNCTION get_approved_given_names(
     p_user_id INT
 ) 
 RETURNS TABLE (
-    out_id INT,  -- given_names.id when seeded, NULL for custom
     out_given_custom_name_bridge_id INT,
     out_given_name TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    t.id,
     t.given_custom_name_bridge_id,
     t.given_name
   FROM (

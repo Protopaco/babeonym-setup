@@ -5,9 +5,9 @@ CREATE TYPE "given_name_state" AS ENUM (
 );
 
 CREATE TYPE "gender" AS ENUM (
-  'Male',
-  'Female',
-  'Neutral'
+  'male',
+  'female',
+  'neutral'
 );
 
 CREATE TYPE "auth_provider" AS ENUM (
@@ -113,6 +113,9 @@ CREATE TABLE "given_name_popularity_by_decade" (
   "decade_id" INT REFERENCES "decades" ("id") NOT NULL,
   "rank" INT NOT NULL, 
   "percentile" NUMERIC NOT NULL CHECK (percentile >= 0 AND percentile <= 1),
+  "total_occurrences" BIGINT,
+  "female_share" NUMERIC,
+  "gender_difference" NUMERIC,
   "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

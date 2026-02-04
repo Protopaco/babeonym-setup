@@ -26,7 +26,7 @@ export default async () => {
                 const [name, gender, count] = line.split(',');
                 return {
                     name,
-                    gender: gender === 'M' ? 'Male' : 'Female',
+                    gender: gender === 'M' ? 'male' : 'female',
                     count: parseInt(count, 10)
                 };
             });
@@ -51,6 +51,9 @@ export default async () => {
         }
 
         logWithTime('All name occurrences inserted successfully.');
+
+        await query('SELECT seed_given_custom_name_bridge()');
+        logWithTime('Seeded given_custom_name_bridge table successfully.');
     } catch (err) {
         console.error('Error inserting occurrences from files:', err);
         process.exit(1);

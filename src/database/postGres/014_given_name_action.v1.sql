@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS given_name_action(
+    p_user_id INT,
+    p_given_custom_name_bridge_id INT,
+    p_given_name_state given_name_state
+);
+
 CREATE OR REPLACE FUNCTION given_name_action(
   p_user_id INT,
   p_given_custom_name_bridge_id INT,

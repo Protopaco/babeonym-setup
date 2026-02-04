@@ -18,24 +18,54 @@ WITH agg AS (
   JOIN decades d ON d.decade = (occ.year / 10) * 10
   GROUP BY occ.given_name_id, occ.gender, d.id
 ),
+
+totals AS (
+  SELECT
+    given_name_id,
+    decade_id,
+    SUM(total_occ) FILTER (WHERE gender IN ('male','female')) AS mf_total,
+    SUM(total_occ) FILTER (WHERE gender = 'female') AS female_total
+  FROM agg
+  GROUP BY given_name_id, decade_id
+),
+
 ranked AS (
   SELECT
-    *,
-    RANK() OVER (PARTITION BY gender, decade_id ORDER BY total_occ DESC) AS rnk,
-    COUNT(*) OVER (PARTITION BY gender, decade_id) AS n
-  FROM agg
+    a.*,
+    RANK() OVER (PARTITION BY a.gender, a.decade_id ORDER BY a.total_occ DESC) AS rnk,
+    COUNT(*) OVER (PARTITION BY a.gender, a.decade_id) AS n
+  FROM agg a
 )
+
 INSERT INTO given_name_popularity_by_decade (
-  given_name_id, gender, decade_id, rank, percentile, date_created
-)
-SELECT
   given_name_id,
   gender,
   decade_id,
-  rnk AS rank,
+  rank,
+  percentile,
+  total_occurrences,
+  female_share,
+  gender_difference,
+  date_created
+)
+SELECT
+  r.given_name_id,
+  r.gender,
+  r.decade_id,
+  r.rnk AS rank,
   CASE
-    WHEN n = 1 THEN 1::numeric
-    ELSE 1::numeric - ((rnk - 1)::numeric / (n - 1)::numeric)
+    WHEN r.n = 1 THEN 1::numeric
+    ELSE 1::numeric - ((r.rnk - 1)::numeric / (r.n - 1)::numeric)
   END AS percentile,
-  CURRENT_TIMESTAMP
-FROM ranked;
+
+  r.total_occ AS total_occurrences,
+
+  (t.female_total::numeric / NULLIF(t.mf_total, 0)) AS female_share,
+
+  ABS((t.female_total::numeric / NULLIF(t.mf_total, 0)) - 0.5) * 2 AS gender_difference,
+
+  NOW() AS date_created
+FROM ranked r
+JOIN totals t
+  ON t.given_name_id = r.given_name_id
+ AND t.decade_id = r.decade_id;
