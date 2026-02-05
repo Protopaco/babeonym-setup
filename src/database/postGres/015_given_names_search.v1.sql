@@ -21,7 +21,7 @@ BEGIN
       FROM user_given_names_states ugns
       WHERE ugns.user_id = p_user_id
         AND ugns.given_custom_name_bridge_id = gcnb.id
-        AND ugns.state = 'selected'
+        AND ugns.state = 'approved'
     )
   ORDER BY gn.given_name
   LIMIT p_limit;

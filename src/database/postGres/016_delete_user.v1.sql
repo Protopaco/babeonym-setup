@@ -1,4 +1,8 @@
-CREATE OR REPLACE FUNCTION purge_user(
+DROP FUNCTION IF EXISTS delete_user(
+    p_user_id INT
+);
+
+CREATE OR REPLACE FUNCTION delete_user(
     p_user_id INT
 )
 RETURNS VOID AS $$

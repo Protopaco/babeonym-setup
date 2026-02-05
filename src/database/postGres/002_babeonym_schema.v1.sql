@@ -1,5 +1,5 @@
 CREATE TYPE "given_name_state" AS ENUM (
-  'selected',
+  'approved',
   'rejected',
   'snoozed'
 );

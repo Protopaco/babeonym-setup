@@ -1,3 +1,6 @@
+DROP FUNCTION IF EXISTS reset_user(
+    p_user_id INT
+);
 
 CREATE OR REPLACE FUNCTION reset_user(
     p_user_id INT
@@ -5,6 +8,9 @@ CREATE OR REPLACE FUNCTION reset_user(
 RETURNS VOID AS $$
 BEGIN
 
+    DELETE FROM user_given_names_states 
+    WHERE user_id = p_user_id;
+    
     DELETE FROM given_name_ratings 
     WHERE user_id = p_user_id;
 
@@ -18,7 +24,5 @@ BEGIN
     DELETE FROM custom_given_names 
     WHERE user_id = p_user_id;
 
-    DELETE FROM user_given_names_states 
-    WHERE user_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql;

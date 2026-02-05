@@ -30,7 +30,7 @@ BEGIN
       ON gnr.given_custom_name_bridge_id = gcnb.id
      AND gnr.user_id = p_user_id
     WHERE ugns.user_id = p_user_id
-      AND ugns.state = 'selected'
+      AND ugns.state = 'approved'
 
     UNION ALL
 
@@ -49,7 +49,7 @@ BEGIN
       ON gnr.given_custom_name_bridge_id = gcnb.id
      AND gnr.user_id = p_user_id
     WHERE ugns.user_id = p_user_id
-      AND ugns.state = 'selected'
+      AND ugns.state = 'approved'
   ) t
   ORDER BY t.sort_rating DESC, t.given_name ASC;
 END;

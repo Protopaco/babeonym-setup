@@ -29,7 +29,7 @@ BEGIN
   VALUES (
     p_user_id,
     v_bridge_id,
-    'selected'::given_name_state,
+    'approved'::given_name_state,
     NOW()
   )
   ON CONFLICT (user_id, given_custom_name_bridge_id)

@@ -70,7 +70,7 @@ BEGIN
         FROM user_given_names_states u
         WHERE u.user_id = p_user_id
           AND u.given_custom_name_bridge_id = b.id
-          AND u.state IN ('rejected', 'selected')
+          AND u.state IN ('rejected', 'approved')
       )
 
       AND NOT EXISTS (
