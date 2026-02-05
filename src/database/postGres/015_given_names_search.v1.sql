@@ -1,11 +1,17 @@
-CREATE OR REPLACE FUNCTION get_given_names_search(
+DROP FUNCTION IF EXISTS given_names_search(
+    p_user_id INT,
+    p_search_text TEXT,
+    p_limit INT
+);
+
+CREATE OR REPLACE FUNCTION given_names_search(
     p_user_id INT,
     p_search_text TEXT,
     p_limit INT DEFAULT 10
 )
 RETURNS TABLE (
-    given_custom_name_bridge_id INT,
-    given_name TEXT
+    out_given_custom_name_bridge_id INT,
+    out_given_name TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
