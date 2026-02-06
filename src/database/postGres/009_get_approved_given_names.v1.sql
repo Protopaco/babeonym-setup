@@ -1,56 +1,29 @@
-DROP FUNCTION IF EXISTS get_approved_given_names(
-    p_user_id INT
-);
-
-CREATE OR REPLACE FUNCTION get_approved_given_names(
-    p_user_id INT
-) 
+CREATE OR REPLACE FUNCTION get_approved_given_names(p_user_id INT)
 RETURNS TABLE (
-    out_given_custom_name_bridge_id INT,
-    out_given_name TEXT
-) AS $$
+  out_given_custom_name_bridge_id INT,
+  out_rating DOUBLE PRECISION,
+  out_given_name TEXT
+)
+LANGUAGE plpgsql
+AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    t.given_custom_name_bridge_id,
-    t.given_name
-  FROM (
-    -- Seeded given names
-    SELECT 
-      gn.id AS id,
-      gcnb.id AS given_custom_name_bridge_id,
-      gn.given_name AS given_name,
-      COALESCE(gnr.rating, 1000.0) AS sort_rating
-    FROM given_names gn
-    JOIN given_custom_name_bridge gcnb
-      ON gcnb.given_name_id = gn.id
-    JOIN user_given_names_states ugns
-      ON ugns.given_custom_name_bridge_id = gcnb.id
-    LEFT JOIN given_name_ratings gnr
-      ON gnr.given_custom_name_bridge_id = gcnb.id
-     AND gnr.user_id = p_user_id
-    WHERE ugns.user_id = p_user_id
-      AND ugns.state = 'approved'
-
-    UNION ALL
-
-    -- Custom given names
-    SELECT 
-      NULL::INT AS id,
-      gcnb.id AS given_custom_name_bridge_id,
-      cgn.given_name AS given_name,
-      COALESCE(gnr.rating, 1000.0) AS sort_rating
-    FROM custom_given_names cgn
-    JOIN given_custom_name_bridge gcnb
-      ON gcnb.custom_given_name_id = cgn.id
-    JOIN user_given_names_states ugns
-      ON ugns.given_custom_name_bridge_id = gcnb.id
-    LEFT JOIN given_name_ratings gnr
-      ON gnr.given_custom_name_bridge_id = gcnb.id
-     AND gnr.user_id = p_user_id
-    WHERE ugns.user_id = p_user_id
-      AND ugns.state = 'approved'
-  ) t
-  ORDER BY t.sort_rating DESC, t.given_name ASC;
+    gcnb.id AS out_given_custom_name_bridge_id,
+    COALESCE(gnr.rating::double precision, 1000.0::double precision) AS out_rating,
+    COALESCE(gn.given_name, cgn.given_name) AS out_given_name
+  FROM user_given_names_states ugns
+  JOIN given_custom_name_bridge gcnb
+    ON gcnb.id = ugns.given_custom_name_bridge_id
+  LEFT JOIN given_names gn
+    ON gn.id = gcnb.given_name_id
+  LEFT JOIN custom_given_names cgn
+    ON cgn.id = gcnb.custom_given_name_id
+  LEFT JOIN given_name_ratings gnr
+    ON gnr.given_custom_name_bridge_id = gcnb.id
+   AND gnr.user_id = p_user_id
+  WHERE ugns.user_id = p_user_id
+    AND ugns.state = 'approved'
+  ORDER BY out_rating DESC, out_given_name ASC;
 END;
-$$ LANGUAGE plpgsql;
+$$;
