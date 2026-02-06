@@ -1,12 +1,13 @@
+DROP FUNCTION IF EXISTS update_user_settings(p_user_id INT, p_theme theme, p_sur_name TEXT);
 
 CREATE OR REPLACE FUNCTION update_user_settings (
     p_user_id INT,
     p_theme theme DEFAULT NULL,
     p_sur_name TEXT DEFAULT NULL
 ) RETURNS TABLE (
-    user_id INT,
-    theme theme,
-    sur_name TEXT
+    out_user_id INT,
+    out_theme theme,
+    out_sur_name TEXT
 ) AS $$
 BEGIN
     RETURN QUERY

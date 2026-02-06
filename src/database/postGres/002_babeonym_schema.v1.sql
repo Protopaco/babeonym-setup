@@ -19,8 +19,8 @@ CREATE TYPE "auth_provider" AS ENUM (
 CREATE TYPE "theme" AS ENUM (
   'light',
   'dark',
-  'boy',
-  'girl'
+  'blue',
+  'pink'
 );
 
 CREATE TABLE "users" (
@@ -60,8 +60,8 @@ CREATE TABLE "custom_given_names" (
 
 CREATE TABLE "given_custom_name_bridge" (
   "id" SERIAL PRIMARY KEY,
-  "given_name_id" INT REFERENCES "given_names" ("id") NULL,
-  "custom_given_name_id" INT REFERENCES "custom_given_names" ("id") NULL,
+  "given_name_id" INT REFERENCES "given_names" ("id") NULL UNIQUE,
+  "custom_given_name_id" INT REFERENCES "custom_given_names" ("id") NULL UNIQUE,
   CHECK (
     (given_name_id IS NOT NULL AND custom_given_name_id IS NULL)
     OR
