@@ -91,6 +91,8 @@ CREATE TABLE "given_name_ratings" (
   "user_id" INT REFERENCES "users" ("id") NOT NULL,
   "given_custom_name_bridge_id" INT NOT NULL REFERENCES "given_custom_name_bridge" ("id"),
   "rating" NUMERIC NOT NULL DEFAULT 1200,
+  "vote_for" INT NOT NULL DEFAULT 0,
+  "vote_total" INT NOT NULL DEFAULT 0,
   "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
   "date_updated" TIMESTAMP NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, given_custom_name_bridge_id)

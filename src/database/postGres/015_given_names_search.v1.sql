@@ -11,16 +11,21 @@ CREATE OR REPLACE FUNCTION given_names_search(
 )
 RETURNS TABLE (
     out_given_custom_name_bridge_id INT,
-    out_given_name TEXT
+    out_given_name TEXT,
+    out_rating NUMERIC,
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT
       gcnb.id,
-      gn.given_name
+      gn.given_name,
+      gnr.rating
   FROM given_names gn
   JOIN given_custom_name_bridge gcnb
     ON gcnb.given_name_id = gn.id
+  LEFT JOIN given_name_ratings gnr
+    ON gnr.given_custom_name_bridge_id = gcnb.id
+   AND gnr.user_id = p_user_id
   WHERE gn.given_name ILIKE '%' || p_search_text || '%'
     AND NOT EXISTS (
       SELECT 1
