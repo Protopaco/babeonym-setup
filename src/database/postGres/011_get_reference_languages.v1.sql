@@ -3,12 +3,12 @@ DROP FUNCTION IF EXISTS get_reference_languages();
 CREATE OR REPLACE FUNCTION get_reference_languages()
 RETURNS TABLE (
   out_id INT,
-  out_name TEXT
+  out_label TEXT
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT id, name
+  SELECT id, label
   FROM languages
-  ORDER BY name;
+  ORDER BY label;
 END;
 $$ LANGUAGE plpgsql;    

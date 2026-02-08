@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION given_names_search(
 RETURNS TABLE (
     out_given_custom_name_bridge_id INT,
     out_given_name TEXT,
-    out_rating NUMERIC,
+    out_rating NUMERIC
 ) AS $$
 BEGIN
   RETURN QUERY
