@@ -1,5 +1,12 @@
+DROP FUNCTION IF EXISTS link_auth_provider(
+    p_user_id INT,
+    p_auth_provider auth_provider,
+    p_foreign_id TEXT,
+    p_email TEXT,
+    p_user_name TEXT
+);
 
-CREATE OR REPLACE FUNCTION user_add_auth(
+CREATE OR REPLACE FUNCTION link_auth_provider(
     p_user_id INT,
     p_auth_provider auth_provider,
     p_foreign_id TEXT,
