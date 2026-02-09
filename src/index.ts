@@ -2,28 +2,19 @@ import inquirer from "inquirer";
 import importLargeSQL from "./utils/importLargeSQL";
 import path from "path";
 import runSQL from "./utils/runSQL";
+import runWikiSQL from "./utils/wikipedia/db/runWikiSQL";
 import getFileNamesInFolder from "./utils/getFileNamesInFolder";
 import seedNameTables from "./utils/Name/seedNameTables";
 import populateNamePopularity from "./utils/Name/populateNamePopularity";
+import setWikipediaPageIdsBulk from "./utils/Wikipedia/db/setWikipediaPageIdsBulk";
+import fetchCategoryMembers from "./utils/Wikipedia/fetchCategoryMembers";
+import fetchRawPages from "./utils/wikipedia/fetchRawPages";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
 
-const basePath =
-  "/Volumes/Babeonym/Babeonym/babeonym-setup/src/database/data/wikipedia/";
-const wikipediaFiles = [
-  { name: "Create Query Tables", fileName: "wikipedia_schema.sql" },
-  { name: "Seed All Titles Table", fileName: "enwiki-latest-all-titles.sql" },
-  { name: "Seed Categories Table", fileName: "enwiki-latest-category.sql" },
-  {
-    name: "Seed Category Links Table",
-    fileName: "enwiki-latest-categorylinks.sql",
-  },
-  { name: "Seed Page Props Table", fileName: "enwiki-latest-page_props.sql" },
-  { name: "Seed Redirect Table", fileName: "enwiki-latest-redirect.sql" },
-  { name: "Seed Page Links Table", fileName: "enwiki-latest-pagelinks.sql" },
-  { name: "Seed Pages Table", fileName: "enwiki-latest-pages-articles.sql" },
-];
+const wikipediaBasePath = path.join(__dirname, "database", "wikipedia");
+const wikipediaFiles = getFileNamesInFolder(wikipediaBasePath);
 
 console.log("Welcome to the Babeonym Setup!\n");
 const main = async () => {
@@ -35,7 +26,7 @@ const main = async () => {
         type: "select",
         name: "mainChoice",
         message: "What would you like to do?",
-        choices: ["Names", "Exit"],
+        choices: ["Names", "Wikipedia", "Exit"],
       },
     ]);
 
@@ -58,47 +49,53 @@ const main = async () => {
       {
         type: "select",
         name: "action",
-        message: "Wikipedia Categories - Select action:",
-        choices: wikipediaFiles.map((file) => file.name),
+        message: "Wikipedia - Select action:",
+        choices: [
+          "Run One",
+          "Run All",
+          "Fetch Category Members: Given Names",
+          "Fetch Raw Pages",
+          "Back to main menu",
+        ],
       },
     ]);
 
-    const choice = wikipediaFiles.find((file) => file.name === action);
-    if (choice) {
-      await importLargeSQL(basePath + choice.fileName);
-    } else {
-      console.log("Invalid choice");
+    switch (action) {
+      case "Run One":
+        const { fileToRun } = await inquirer.prompt([
+          {
+            type: "select",
+            name: "fileToRun",
+            message: "Select SQL file to run:",
+            choices: [...wikipediaFiles, "Exit"],
+          },
+        ]);
+        if (fileToRun === "Exit") {
+          return;
+        }
+        console.log(`\n→ Running ${fileToRun}...`);
+        await runWikiSQL(`${wikipediaBasePath}/${fileToRun}`);
+        break;
+      case "Run All":
+        console.log("\n→ Running all Wikipedia setup tasks...");
+        for (const fileName of wikipediaFiles) {
+          console.log(`\n→ Running ${fileName}...`);
+          await runWikiSQL(`${wikipediaBasePath}/${fileName}`);
+        }
+        break;
+      case "Fetch Category Members: Given Names":
+        console.log("\n→ Seeding Wikipedia page IDs...");
+        await fetchCategoryMembers("Given names");
+        break;
+      case "Fetch Raw Pages":
+        console.log("\n→ Seeding Wikipedia pages...");
+        await fetchRawPages(25);
+        break;
+      case "Back to main menu":
+        return;
     }
   }
 };
-
-async function wikipediaArticlesMenu() {
-  const { action } = await inquirer.prompt([
-    {
-      type: "select",
-      name: "action",
-      message: "Wikipedia Articles - Select action:",
-      choices: [
-        "Generate article tables",
-        "Seed article data",
-        "Back to main menu",
-      ],
-    },
-  ]);
-
-  switch (action) {
-    case "Generate article tables":
-      console.log("\n→ Generating article tables...");
-      // Your function will go here
-      break;
-    case "Seed article data":
-      console.log("\n→ Seeding article data...");
-      // Your function will go here
-      break;
-    case "Back to main menu":
-      return;
-  }
-}
 
 async function namesMenu() {
   const { action } = await inquirer.prompt([
@@ -124,9 +121,12 @@ async function namesMenu() {
           type: "select",
           name: "fileToRun",
           message: "Select SQL file to run:",
-          choices: postgreFiles,
+          choices: [...wikipediaFiles, "Exit"],
         },
       ]);
+      if (fileToRun === "Exit") {
+        return;
+      }
       console.log(`\n→ Running ${fileToRun}...`);
       await runSQL(`${postgreBasePath}/${fileToRun}`);
       break;
