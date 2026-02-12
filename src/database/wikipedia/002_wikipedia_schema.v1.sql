@@ -6,8 +6,11 @@ CREATE TABLE wikipedia_page_ids(
     "source" TEXT NOT NULL,
     "pageid" INT UNIQUE NOT NULL,
     "title" TEXT NOT NULL,
-    "ns" INT NOT NULL,
+    "ns" INT NULL,
     "hits" INT NOT NULL DEFAULT 0,
+    "resolved_pageid" INT NULL,
+    "resolved_title" TEXT NULL,
+    "is_redirect" BOOLEAN NOT NULL DEFAULT FALSE,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
     "date_updated" TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -15,8 +18,11 @@ CREATE TABLE wikipedia_page_ids(
 CREATE TABLE wikipedia_page_raw(
     "id" SERIAL PRIMARY KEY,
     "pageid" INT UNIQUE REFERENCES wikipedia_page_ids(pageid) ON DELETE CASCADE,
-    "raw_content" TEXT NOT NULL,
+    "infobox_json" JSONB,
+    "sections_json" JSONB,
+    "categories" TEXT[] DEFAULT '{}',
+    "text" TEXT,
+    "wtf_json" JSONB,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
     "date_updated" TIMESTAMP NOT NULL DEFAULT NOW()
-
 );

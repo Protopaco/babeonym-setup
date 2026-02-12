@@ -9,6 +9,7 @@ import populateNamePopularity from "./utils/Name/populateNamePopularity";
 import setWikipediaPageIdsBulk from "./utils/Wikipedia/db/setWikipediaPageIdsBulk";
 import fetchCategoryMembers from "./utils/Wikipedia/fetchCategoryMembers";
 import fetchRawPages from "./utils/wikipedia/fetchRawPages";
+import fetchPageWithWTF from "./utils/wikipedia/fetchPageWithWTF";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -55,6 +56,7 @@ const main = async () => {
           "Run All",
           "Fetch Category Members: Given Names",
           "Fetch Raw Pages",
+          "Fetch Page with WTF",
           "Back to main menu",
         ],
       },
@@ -90,6 +92,10 @@ const main = async () => {
       case "Fetch Raw Pages":
         console.log("\n→ Seeding Wikipedia pages...");
         await fetchRawPages(25);
+        break;
+      case "Fetch Page with WTF":
+        console.log("\n→ Fetching page with WTF...");
+        await fetchPageWithWTF();
         break;
       case "Back to main menu":
         return;
