@@ -13,7 +13,14 @@ export default async (
   text: string,
   wtf_json: any,
 ) => {
-  console.log("setWikipediaPagesRaw - resolvedPageId:", resolvedPageId);
+  console.log(
+    "setWikipediaPagesRaw - requestedPageId:",
+    requestedPageId,
+    " - resolvedPageId: ",
+    resolvedPageId,
+    " - match: ",
+    resolvedPageId === requestedPageId ? "✅" : "❌",
+  );
   try {
     await query(
       "SELECT set_wikipedia_page_raw($1, $2, $3, $4::jsonb, $5::jsonb, $6::text[], $7::text, $8::jsonb)",

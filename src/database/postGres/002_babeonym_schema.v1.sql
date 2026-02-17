@@ -123,7 +123,8 @@ CREATE TABLE "given_name_popularity_by_decade" (
 
 CREATE TABLE "languages" (
   "id" SERIAL PRIMARY KEY,
-  "label" TEXT UNIQUE NOT NULL
+  "label" TEXT UNIQUE NOT NULL,
+  "flag" TEXT NOT NULL
 );
 
 CREATE TABLE "cultures" (

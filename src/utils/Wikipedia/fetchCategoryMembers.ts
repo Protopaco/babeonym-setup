@@ -1,4 +1,4 @@
-import setWikipediaPageIdsBulk from "./db/setWikipediaPageIdsBulk";
+//import setWikipediaPageIdsBulk from "./db/setWikipediaPageIdsBulk";
 import wikipediaClient from "./wikipediaClient";
 
 export default async (categoryTitle: string) => {
@@ -6,13 +6,14 @@ export default async (categoryTitle: string) => {
     action: "query",
     list: "categorymembers",
     cmtitle: `Category:${categoryTitle}`,
-    cmtype: "page",
+    cmtype: "page|subcat",
     cmlimit: 500,
     format: "json",
     origin: "*",
   };
 
   const firstResponse = await wikipediaClient(queryParams);
+  console.log("🚀 ~ firstResponse:", firstResponse);
   if (
     !firstResponse ||
     !firstResponse.query ||
@@ -23,13 +24,14 @@ export default async (categoryTitle: string) => {
   }
 
   const members = firstResponse.query.categorymembers;
+  console.log("🚀 ~ members:", members);
 
   const totalMembers = members.length;
   console.log("🚀 ~ totalMembers:", totalMembers);
   let cmcontinue = firstResponse.continue
     ? firstResponse.continue.cmcontinue
     : null;
-  await setWikipediaPageIdsBulk(members, categoryTitle); // Save the first batch of members to the database
+  //await setWikipediaPageIdsBulk(members, categoryTitle); // Save the first batch of members to the database
   while (cmcontinue) {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Add a small delay to avoid hitting rate limits
     const nextQueryParams = {
@@ -48,10 +50,10 @@ export default async (categoryTitle: string) => {
       );
       break;
     }
-    const nextMembers = nextResponse.query.categorymembers;
+    members.push(...nextResponse.query.categorymembers);
     const totalMembers = members.length;
     console.log("🚀 ~ totalMembers:", totalMembers);
-    await setWikipediaPageIdsBulk(nextMembers, categoryTitle);
+    // await setWikipediaPageIdsBulk(nextMembers, categoryTitle);
 
     cmcontinue = nextResponse.continue
       ? nextResponse.continue.cmcontinue

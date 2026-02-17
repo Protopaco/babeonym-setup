@@ -6,10 +6,13 @@ import runWikiSQL from "./utils/wikipedia/db/runWikiSQL";
 import getFileNamesInFolder from "./utils/getFileNamesInFolder";
 import seedNameTables from "./utils/Name/seedNameTables";
 import populateNamePopularity from "./utils/Name/populateNamePopularity";
-import setWikipediaPageIdsBulk from "./utils/Wikipedia/db/setWikipediaPageIdsBulk";
+// import setWikipediaPageIdsBulk from "./utils/Wikipedia/db/setWikipediaPageIdsBulk";
 import fetchCategoryMembers from "./utils/Wikipedia/fetchCategoryMembers";
 import fetchRawPages from "./utils/wikipedia/fetchRawPages";
 import fetchPageWithWTF from "./utils/wikipedia/fetchPageWithWTF";
+import parseRawPages from "./utils/wikipedia/parseRawPages";
+import fetchSubcategories from "./utils/wikipedia/fetchSubcategories";
+import pairLanguagePage from "./utils/wikipedia/pairLanguagePage";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -55,8 +58,11 @@ const main = async () => {
           "Run One",
           "Run All",
           "Fetch Category Members: Given Names",
+          "Fetch Subcategories: Given Names By Language",
           "Fetch Raw Pages",
           "Fetch Page with WTF",
+          "Parse Raw Pages",
+          "Setup Page-Language Bridge",
           "Back to main menu",
         ],
       },
@@ -89,6 +95,30 @@ const main = async () => {
         console.log("\n→ Seeding Wikipedia page IDs...");
         await fetchCategoryMembers("Given names");
         break;
+      case "Fetch Subcategories: Given Names By Language":
+        const { selectedFamily } = await inquirer.prompt([
+          {
+            type: "select",
+            name: "selectedFamily",
+            message: "Choose a language family:",
+            choices: [
+              "Germanic given names",
+              "Celtic given names",
+              "Slavic given names",
+              "Scandinavian given names",
+              "Turkic given names",
+              "Iranian given names",
+              "Hindu given names",
+            ],
+          },
+        ]);
+
+        console.log(
+          `\n→ Fetching subcategories for '${selectedFamily}' category...`,
+        );
+        await fetchSubcategories(selectedFamily);
+        break;
+        break;
       case "Fetch Raw Pages":
         console.log("\n→ Seeding Wikipedia pages...");
         await fetchRawPages(25);
@@ -97,6 +127,13 @@ const main = async () => {
         console.log("\n→ Fetching page with WTF...");
         await fetchPageWithWTF();
         break;
+      case "Parse Raw Pages":
+        console.log("\n→ Parsing raw Wikipedia pages...");
+        await parseRawPages();
+        break;
+      case "Setup Page-Language Bridge":
+        console.log("\n→ Setting up page-language bridge...");
+        await pairLanguagePage();
       case "Back to main menu":
         return;
     }
@@ -127,7 +164,7 @@ async function namesMenu() {
           type: "select",
           name: "fileToRun",
           message: "Select SQL file to run:",
-          choices: [...wikipediaFiles, "Exit"],
+          choices: [...postgreFiles, "Exit"],
         },
       ]);
       if (fileToRun === "Exit") {

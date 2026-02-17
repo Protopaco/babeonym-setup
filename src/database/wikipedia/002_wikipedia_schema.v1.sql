@@ -26,3 +26,21 @@ CREATE TABLE wikipedia_page_raw(
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
     "date_updated" TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE wikipedia_parsing_table(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT UNIQUE REFERENCES wikipedia_page_ids(pageid),
+    "given_names" TEXT,
+    "cultures" TEXT,
+    "languages" TEXT,
+    "meanings" TEXT,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE page_language_bridge(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT REFERENCES wikipedia_page_ids(pageid),
+    "language_id" INT,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW() 
+);
+CREATE UNIQUE INDEX uniq_page_language_bridge ON page_language_bridge (pageid, language_id)
