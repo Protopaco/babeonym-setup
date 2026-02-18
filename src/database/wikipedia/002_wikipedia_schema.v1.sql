@@ -44,3 +44,12 @@ CREATE TABLE page_language_bridge(
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW() 
 );
 CREATE UNIQUE INDEX uniq_page_language_bridge ON page_language_bridge (pageid, language_id)
+
+CREATE TABLE temp_culture_pages(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT NOT NULL UNIQUE,
+    "is_culture" BOOLEAN NOT NULL DEFAULT FALSE,
+    "raw_title" TEXT UNIQUE NOT NULL,
+    "culture" TEXT,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+);

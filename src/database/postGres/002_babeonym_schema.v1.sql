@@ -132,6 +132,42 @@ CREATE TABLE "cultures" (
   "label" TEXT UNIQUE NOT NULL
 );
 
+CREATE TABLE "regions" (
+  "id" INT PRIMARY KEY,
+  "label" TEXT NOT NULL UNIQUE,
+  "parent_id" INT NULL REFERENCES regions(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS culture_region_bridge (
+  culture_id INT NOT NULL REFERENCES cultures(id) ON DELETE CASCADE,
+  region_id INT NOT NULL REFERENCES regions(id) ON DELETE CASCADE,
+  date_created TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (culture_id, region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_regions_parent_id
+  ON regions(parent_id);
+
+CREATE INDEX IF NOT EXISTS idx_culture_region_bridge_region
+  ON culture_region_bridge(region_id);
+
+CREATE INDEX IF NOT EXISTS idx_culture_region_bridge_culture
+  ON culture_region_bridge(culture_id);
+
+  CREATE TABLE "language_region_bridge" (
+  "language_id" INT NOT NULL REFERENCES languages(id) ON DELETE CASCADE,
+  "region_id" INT NOT NULL REFERENCES regions(id) ON DELETE CASCADE,
+  "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (language_id, region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_language_region_bridge_region
+  ON language_region_bridge(region_id);
+
+CREATE INDEX IF NOT EXISTS idx_language_region_bridge_language
+  ON language_region_bridge(language_id);
+
+
 CREATE TABLE "given_name_etymology" (
   "id" SERIAL PRIMARY KEY,
   "given_name_id" INT REFERENCES "given_names" ("id") NOT NULL,
