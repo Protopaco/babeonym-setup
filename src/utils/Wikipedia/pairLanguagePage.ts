@@ -1,4 +1,3 @@
-import fetchCategoryMembers from "./fetchCategoryMembers";
 import categoryLanguagePairs from "./data/categoryLanguagePairs";
 import setPageLanguageBridge from "./db/setPageLanguageBridge";
 import fetchAllCategoryPageids from "./fetchAllCategoryPageids";

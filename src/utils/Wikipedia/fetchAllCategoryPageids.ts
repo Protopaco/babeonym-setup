@@ -76,10 +76,15 @@ const getAllCategoryPageIds = async (
       });
 
       const members = data.query?.categorymembers ?? [];
+      console.log("🚀 ~ walk ~ members:", members);
+      console.log(
+        `Fetched ${members.length} members for category "${catTitle}" at depth ${depth}.`,
+      );
 
       for (const m of members) {
         if (m.ns === 14) {
           // subcategory
+          console.log("SUBCAT:", m.title);
           await walk(m.title, depth + 1);
           continue;
         }

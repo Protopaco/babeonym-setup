@@ -45,6 +45,15 @@ CREATE TABLE page_language_bridge(
 );
 CREATE UNIQUE INDEX uniq_page_language_bridge ON page_language_bridge (pageid, language_id)
 
+CREATE TABLE page_culture_bridge(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT REFERENCES wikipedia_page_ids(pageid),
+    "culture_id" INT,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW() 
+);
+CREATE UNIQUE INDEX uniq_page_culture_bridge ON page_culture_bridge (pageid, culture_id)
+
+
 CREATE TABLE temp_culture_pages(
     "id" SERIAL PRIMARY KEY,
     "pageid" INT NOT NULL UNIQUE,

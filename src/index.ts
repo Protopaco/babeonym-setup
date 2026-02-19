@@ -8,11 +8,13 @@ import seedNameTables from "./utils/Name/seedNameTables";
 import populateNamePopularity from "./utils/Name/populateNamePopularity";
 // import setWikipediaPageIdsBulk from "./utils/Wikipedia/db/setWikipediaPageIdsBulk";
 import fetchCategoryMembers from "./utils/Wikipedia/fetchCategoryMembers";
+import getCultureSubcategories from "./utils/wikipedia/getCultureSubcategories";
 import fetchRawPages from "./utils/wikipedia/fetchRawPages";
 import fetchPageWithWTF from "./utils/wikipedia/fetchPageWithWTF";
 import parseRawPages from "./utils/wikipedia/parseRawPages";
 import fetchSubcategories from "./utils/wikipedia/fetchSubcategories";
 import pairLanguagePage from "./utils/wikipedia/pairLanguagePage";
+import pairCulturePage from "./utils/wikipedia/pairCulturePage";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -63,6 +65,8 @@ const main = async () => {
           "Fetch Page with WTF",
           "Parse Raw Pages",
           "Setup Page-Language Bridge",
+          "Setup Page-Culture Bridge",
+          "Get Culture Subcategories",
           "Back to main menu",
         ],
       },
@@ -134,6 +138,15 @@ const main = async () => {
       case "Setup Page-Language Bridge":
         console.log("\n→ Setting up page-language bridge...");
         await pairLanguagePage();
+        break;
+      case "Setup Page-Culture Bridge":
+        console.log("\n→ Setting up page-culture bridge...");
+        await pairCulturePage();
+        break;
+      case "Get Culture Subcategories":
+        console.log("\n→ Getting culture subcategories...");
+        await getCultureSubcategories("Given names by culture");
+        break;
       case "Back to main menu":
         return;
     }
