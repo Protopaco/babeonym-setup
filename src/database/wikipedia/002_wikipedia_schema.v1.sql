@@ -11,6 +11,7 @@ CREATE TABLE wikipedia_page_ids(
     "resolved_pageid" INT NULL,
     "resolved_title" TEXT NULL,
     "is_redirect" BOOLEAN NOT NULL DEFAULT FALSE,
+    "has_been_matched" BOOLEAN NOT NULL DEFAULT FALSE,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
     "date_updated" TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -60,5 +61,19 @@ CREATE TABLE temp_culture_pages(
     "is_culture" BOOLEAN NOT NULL DEFAULT FALSE,
     "raw_title" TEXT UNIQUE NOT NULL,
     "culture" TEXT,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE page_given_name_bridge(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT REFERENCES wikipedia_page_ids(pageid) NOT NULL,
+    "given_name_id" INT NOT NULL,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW() 
+);
+
+CREATE TABLE titles_without_matches(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT NOT NULL UNIQUE,
+    "title" TEXT NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
 );
