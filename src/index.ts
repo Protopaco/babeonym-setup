@@ -17,6 +17,11 @@ import pairLanguagePage from "./utils/wikipedia/pairLanguagePage";
 import pairCulturePage from "./utils/wikipedia/pairCulturePage";
 import pairGivenNamePage from "./utils/wikipedia/pairGivenNamePage";
 import pairMeaningPage from "./utils/wikipedia/pairMeaningPage";
+import migrateCulturesFromProd from "./utils/wikipedia/migrateData/migrateCulturesFromProd";
+import migrateLanguagesFromProd from "./utils/wikipedia/migrateData/migrateLanguagesFromProd";
+import migrateGivenNamesFromProd from "./utils/wikipedia/migrateData/migrateGivenNamesFromProd";
+import migrateMeaningsToNames from "./utils/wikipedia/migrateData/migrateMeaningsToNames";
+import migrateRegionsFromProd from "./utils/wikipedia/migrateData/migrateRegionsFromProd";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -71,6 +76,7 @@ const main = async () => {
           "Pair Given Name with Page",
           "Pair Meaning with Page",
           "Get Culture Subcategories",
+          "Migrate Data",
           "Back to main menu",
         ],
       },
@@ -159,6 +165,41 @@ const main = async () => {
         console.log("\n→ Getting culture subcategories...");
         await getCultureSubcategories("Given names by culture");
         break;
+      case "Migrate Data":
+        const { migrateData } = await inquirer.prompt([
+          {
+            type: "select",
+            name: "migrateData",
+            message: "Select data to migrate:",
+            choices: [
+              "Cultures",
+              "Languages",
+              "Regions",
+              "Given Names",
+              "Meanings From Pages To Names",
+              "Back to main menu",
+            ],
+          },
+        ]);
+        switch (migrateData) {
+          case "Cultures":
+            await migrateCulturesFromProd();
+            break;
+          case "Languages":
+            await migrateLanguagesFromProd();
+            break;
+          case "Regions":
+            await migrateRegionsFromProd();
+            break;
+          case "Given Names":
+            await migrateGivenNamesFromProd();
+            break;
+          case "Meanings From Pages To Names":
+            await migrateMeaningsToNames();
+            break;
+          case "Back to main menu":
+            return;
+        }
       case "Back to main menu":
         return;
     }

@@ -168,13 +168,26 @@ CREATE INDEX IF NOT EXISTS idx_language_region_bridge_language
   ON language_region_bridge(language_id);
 
 
-CREATE TABLE "given_name_etymology" (
-  "id" SERIAL PRIMARY KEY,
-  "given_name_id" INT REFERENCES "given_names" ("id") NOT NULL,
-  "language_id" INT REFERENCES "languages" ("id"),
-  "culture_id" INT REFERENCES "cultures" ("id"),
-  "meaning" TEXT,
-  "notes" TEXT
+CREATE TABLE given_name_meaning (
+  given_name_id INT PRIMARY KEY REFERENCES given_names(id),
+  meaning_short TEXT,
+  meaning_long  TEXT,
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  date_updated  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE given_name_culture_bridge (
+  given_name_id INT NOT NULL REFERENCES given_names(id),
+  culture_id    INT NOT NULL REFERENCES cultures(id),
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (given_name_id, culture_id)
+);
+
+CREATE TABLE given_name_language_bridge (
+  given_name_id INT NOT NULL REFERENCES given_names(id),
+  language_id   INT NOT NULL REFERENCES languages(id),
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (given_name_id, language_id)
 );
 
 -- Create user_sessions table for session storage

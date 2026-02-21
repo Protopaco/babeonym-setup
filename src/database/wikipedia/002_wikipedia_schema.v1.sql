@@ -86,3 +86,91 @@ CREATE TABLE page_meanings(
     "attempts" INT NOT NULL DEFAULT 0,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
 )
+
+
+
+/* Staging Tables */
+
+CREATE TABLE "given_names_staging" (
+  "id" SERIAL PRIMARY KEY,
+  "given_name" TEXT UNIQUE NOT NULL,
+  "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE given_name_meaning_staging (
+  given_name_id INT PRIMARY KEY REFERENCES given_names_staging(id),
+  meaning_short TEXT,
+  meaning_long  TEXT,
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  date_updated  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+
+CREATE TABLE "languages_staging" (
+  "id" SERIAL PRIMARY KEY,
+  "label" TEXT UNIQUE NOT NULL,
+  "flag" TEXT NOT NULL
+);
+
+CREATE TABLE "cultures_staging" (
+  "id" SERIAL PRIMARY KEY,
+  "label" TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE "regions_staging" (
+  "id" INT PRIMARY KEY,
+  "label" TEXT NOT NULL UNIQUE,
+  "parent_id" INT NULL REFERENCES regions_staging(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS culture_region_bridge_staging (
+  culture_id INT NOT NULL REFERENCES cultures_staging(id) ON DELETE CASCADE,
+  region_id INT NOT NULL REFERENCES regions_staging(id) ON DELETE CASCADE,
+  date_created TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (culture_id, region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_regions_staging_parent_id
+  ON regions_staging(parent_id);
+
+CREATE INDEX IF NOT EXISTS idx_culture_region_bridge_staging_region
+  ON culture_region_bridge_staging(region_id);  
+  
+CREATE INDEX IF NOT EXISTS idx_culture_region_bridge_staging_culture
+  ON culture_region_bridge_staging(culture_id);
+
+  CREATE TABLE "language_region_bridge_staging" (
+  "language_id" INT NOT NULL REFERENCES languages_staging(id) ON DELETE CASCADE,
+  "region_id" INT NOT NULL REFERENCES regions_staging(id) ON DELETE CASCADE,
+  "date_created" TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (language_id, region_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_language_region_bridge_staging_region
+  ON language_region_bridge_staging(region_id);
+
+CREATE INDEX IF NOT EXISTS idx_language_region_bridge_staging_language
+  ON language_region_bridge_staging(language_id);
+
+CREATE TABLE given_name_meaning_staging (
+  given_name_id INT PRIMARY KEY REFERENCES given_names(id),
+  meaning_short TEXT,
+  meaning_long  TEXT,
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  date_updated  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE given_name_culture_bridge_staging (
+  given_name_id INT NOT NULL REFERENCES given_names(id),
+  culture_id    INT NOT NULL REFERENCES cultures_staging(id),
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (given_name_id, culture_id)
+);
+
+CREATE TABLE given_name_language_bridge_staging (
+  given_name_id INT NOT NULL REFERENCES given_names(id),
+  language_id   INT NOT NULL REFERENCES languages_staging(id),
+  date_created  TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (given_name_id, language_id)
+);
+
