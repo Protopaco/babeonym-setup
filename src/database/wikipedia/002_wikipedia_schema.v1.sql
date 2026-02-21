@@ -77,3 +77,12 @@ CREATE TABLE titles_without_matches(
     "title" TEXT NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE page_meanings(
+    "id" SERIAL PRIMARY KEY,
+    "pageid" INT NOT NULL UNIQUE REFERENCES wikipedia_page_ids(pageid) ON DELETE CASCADE,
+    "short_meaning" TEXT,
+    "long_meaning" TEXT,
+    "attempts" INT NOT NULL DEFAULT 0,
+    "date_created" TIMESTAMP NOT NULL DEFAULT NOW()
+)

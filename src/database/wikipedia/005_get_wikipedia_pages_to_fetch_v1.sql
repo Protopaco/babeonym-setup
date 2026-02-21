@@ -9,7 +9,14 @@ BEGIN
   RETURN QUERY
   SELECT pageid
   FROM wikipedia_page_ids
-  WHERE hits <= p_max_hits
+    WHERE EXISTS (
+      SELECT 1 FROM page_given_name_bridge as pgnb
+      WHERE pgnb.pageid = wikipedia_page_ids.pageid
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM wikipedia_page_raw as wpr
+      WHERE wpr.pageid = wikipedia_page_ids.pageid
+    )
   ORDER BY hits ASC, date_updated ASC
   LIMIT p_limit;
 END;

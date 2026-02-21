@@ -4,9 +4,11 @@ import setWikipediaPagesRaw from "./db/setWikipediaPagesRaw";
 wtf.extend(require("wtf-plugin-api"));
 
 export default async () => {
-  const pageIds = await getWikipediaPagesToFetch(1000, 1);
+  const pageIds = await getWikipediaPagesToFetch(10000, 0);
+  let count = 0;
 
   for (const requestedPageId of pageIds) {
+    count++;
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const page = await wtf.fetch(requestedPageId, { follow_redirects: true });
     if (!page) {
@@ -38,5 +40,9 @@ export default async () => {
       text,
       wtfJson,
     );
+
+    if (count % 10 === 0) {
+      console.log(`Processed ${count} of ${pageIds.length}...`);
+    }
   }
 };

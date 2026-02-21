@@ -16,6 +16,7 @@ import fetchSubcategories from "./utils/wikipedia/fetchSubcategories";
 import pairLanguagePage from "./utils/wikipedia/pairLanguagePage";
 import pairCulturePage from "./utils/wikipedia/pairCulturePage";
 import pairGivenNamePage from "./utils/wikipedia/pairGivenNamePage";
+import pairMeaningPage from "./utils/wikipedia/pairMeaningPage";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -68,6 +69,7 @@ const main = async () => {
           "Setup Page-Language Bridge",
           "Setup Page-Culture Bridge",
           "Pair Given Name with Page",
+          "Pair Meaning with Page",
           "Get Culture Subcategories",
           "Back to main menu",
         ],
@@ -148,6 +150,10 @@ const main = async () => {
       case "Pair Given Name with Page":
         console.log("\n→ Pairing given names with Wikipedia pages...");
         await pairGivenNamePage();
+        break;
+      case "Pair Meaning with Page":
+        console.log("\n→ Pairing meanings with Wikipedia pages...");
+        await pairMeaningPage();
         break;
       case "Get Culture Subcategories":
         console.log("\n→ Getting culture subcategories...");
