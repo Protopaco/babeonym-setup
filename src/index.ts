@@ -22,6 +22,9 @@ import migrateLanguagesFromProd from "./utils/wikipedia/migrateData/migrateLangu
 import migrateGivenNamesFromProd from "./utils/wikipedia/migrateData/migrateGivenNamesFromProd";
 import migrateMeaningsToNames from "./utils/wikipedia/migrateData/migrateMeaningsToNames";
 import migrateRegionsFromProd from "./utils/wikipedia/migrateData/migrateRegionsFromProd";
+import migrateNameLanguageBridge from "./utils/wikipedia/migrateData/migrateNameLanguageBridge";
+import migrateNameCultureBridge from "./utils/wikipedia/migrateData/migrateNameCultureBridge";
+import migrateTablesToProd from "./utils/wikipedia/migrateData/migrateTablesToProd";
 
 const postgreBasePath = path.join(__dirname, "database", "postGres");
 const postgreFiles = getFileNamesInFolder(postgreBasePath);
@@ -177,6 +180,9 @@ const main = async () => {
               "Regions",
               "Given Names",
               "Meanings From Pages To Names",
+              "Given Name Language Bridge",
+              "Given Name Culture Bridge",
+              "Migrate Table Back To Prod",
               "Back to main menu",
             ],
           },
@@ -196,6 +202,15 @@ const main = async () => {
             break;
           case "Meanings From Pages To Names":
             await migrateMeaningsToNames();
+            break;
+          case "Given Name Language Bridge":
+            await migrateNameLanguageBridge();
+            break;
+          case "Given Name Culture Bridge":
+            await migrateNameCultureBridge();
+            break;
+          case "Migrate Table Back To Prod":
+            await migrateTablesToProd();
             break;
           case "Back to main menu":
             return;
