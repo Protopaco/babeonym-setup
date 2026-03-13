@@ -9,6 +9,6 @@ BEGIN
   RETURN QUERY
   SELECT id, decade, label
   FROM decades
-  ORDER BY decade;
+  ORDER BY decade DESC;
 END;
 $$ LANGUAGE plpgsql;

@@ -3,6 +3,8 @@ DROP FUNCTION IF EXISTS get_name_candidates(
   numeric,
   gender[],
   INT[],
+  INT[],
+  INT[],
   INT
 );
 
@@ -11,6 +13,8 @@ CREATE OR REPLACE FUNCTION get_name_candidates(
   p_popularity_percentile numeric DEFAULT 1.0,
   p_gender_ids gender[] DEFAULT NULL,
   p_decade_ids INT[] DEFAULT NULL,
+  p_language_ids INT[] DEFAULT NULL,
+  p_culture_ids INT[] DEFAULT NULL,
   p_limit INT DEFAULT 50
 )
 RETURNS TABLE (
@@ -23,7 +27,7 @@ BEGIN
     SELECT
       p_user_id AS user_id,
       LEAST(1, GREATEST(0, p_popularity_percentile)) AS x,
-      GREATEST(1, p_limit) AS lim
+      GREATEST(1, COALESCE(NULLIF(p_limit, 0), 50)) AS lim
   ),
 
   candidates_raw AS (
@@ -76,6 +80,26 @@ BEGIN
           AND u2.state = 'snoozed'
           AND u2.date_created > NOW() - INTERVAL '24 hours'
       )
+
+    AND (
+    p_language_ids IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM given_name_language_bridge gnlb
+      WHERE gnlb.given_name_id = gn.id
+        AND gnlb.language_id = ANY(p_language_ids)
+    )
+  )
+
+    AND (
+      p_culture_ids IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM given_name_culture_bridge gncb
+        WHERE gncb.given_name_id = gn.id
+          AND gncb.culture_id = ANY(p_culture_ids)
+      )
+    )
   ),
 
   candidates AS (
@@ -131,7 +155,7 @@ BEGIN
     CROSS JOIN params p
     CROSS JOIN (SELECT w FROM chosen_band LIMIT 1) cb
     WHERE c.percentile BETWEEN GREATEST(0, p.x - cb.w) AND LEAST(1, p.x + cb.w)
-    ORDER BY random()
+    ORDER BY c.percentile DESC, random()
     LIMIT (SELECT lim FROM params)
   )
 
