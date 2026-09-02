@@ -13,7 +13,7 @@ BEGIN
     RETURN QUERY
     UPDATE user_settings
     SET
-        sur_name = COALESCE(p_sur_name, sur_name)
+        sur_name = p_sur_name
     WHERE user_id = p_user_id
     RETURNING user_id, theme, sur_name;
 END;
