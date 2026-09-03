@@ -1,3 +1,6 @@
+-- SUPERSEDED BY 034_get_name_filters.v1.sql, and dropped by 035.
+-- Kept for history. Do not run: nothing consumes this function any more.
+
 DROP FUNCTION IF EXISTS get_reference_decades();
 CREATE OR REPLACE FUNCTION get_reference_decades()
 RETURNS TABLE (

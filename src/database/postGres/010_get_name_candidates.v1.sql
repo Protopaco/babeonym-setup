@@ -1,3 +1,8 @@
+-- SUPERSEDED BY 033_get_name_candidates.v3.sql
+-- Kept for history. Do not run: 033 drops and recreates this function with a
+-- different gender parameter, so running this afterward restores the old
+-- signature as a second overload rather than replacing anything.
+
 DROP FUNCTION IF EXISTS get_name_candidates(
   INT,
   numeric,
@@ -26,7 +31,7 @@ BEGIN
   WITH params AS (
     SELECT
       p_user_id AS user_id,
-      LEAST(1, GREATEST(0, p_popularity_percentile)) AS x,
+      LEAST(1, GREATEST(0, COALESCE(p_popularity_percentile, 1.0))) AS x,
       GREATEST(1, COALESCE(NULLIF(p_limit, 0), 50)) AS lim
   ),
 

@@ -1,3 +1,8 @@
+-- SUPERSEDED BY 033_get_name_candidates.v3.sql
+-- Kept for history. Do not run: 033 drops and recreates this function with a
+-- different gender parameter, so running this afterward restores the old
+-- signature as a second overload rather than replacing anything.
+
 -- Revises get_name_candidates from 010.
 --
 -- Two changes:

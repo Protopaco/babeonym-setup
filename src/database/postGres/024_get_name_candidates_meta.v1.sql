@@ -1,7 +1,14 @@
+-- SUPERSEDED BY 033_get_name_candidates.v3.sql
+-- Kept for history. Do not run: 033 drops and recreates this function with a
+-- different gender parameter, so running this afterward restores the old
+-- signature as a second overload rather than replacing anything.
+
 DROP FUNCTION IF EXISTS get_name_candidates_meta(
   INT,
   numeric,
   gender[],
+  INT[],
+  INT[],
   INT[],
   INT
 );
@@ -11,6 +18,8 @@ CREATE OR REPLACE FUNCTION get_name_candidates_meta(
   p_popularity_percentile numeric DEFAULT 1.0,
   p_gender_ids gender[] DEFAULT NULL,
   p_decade_ids INT[] DEFAULT NULL,
+  p_language_ids INT[] DEFAULT NULL,
+  p_culture_ids INT[] DEFAULT NULL,
   p_limit INT DEFAULT 50
 )
 RETURNS TABLE (
@@ -24,8 +33,8 @@ BEGIN
   WITH params AS (
     SELECT
       p_user_id AS user_id,
-      LEAST(1, GREATEST(0, p_popularity_percentile)) AS x,
-      GREATEST(1, p_limit) AS lim
+      LEAST(1, GREATEST(0, COALESCE(p_popularity_percentile, 1.0))) AS x,
+      GREATEST(1, COALESCE(NULLIF(p_limit, 0), 50)) AS lim
   ),
 
   candidates_raw AS (
@@ -34,7 +43,6 @@ BEGIN
       gnpbd.percentile,
       gn.given_name,
 
-      -- derive gender from your precomputed metrics
       CASE
         WHEN gnpbd.gender_difference IS NULL THEN NULL::gender
         WHEN gnpbd.gender_difference <= 0.40 THEN 'neutral'::gender
@@ -51,7 +59,6 @@ BEGIN
     WHERE
       (p_decade_ids IS NULL OR gnpbd.decade_id = ANY(p_decade_ids))
 
-      -- filter using derived gender (NOT the raw per-row gender)
       AND (
         p_gender_ids IS NULL
         OR (
@@ -64,7 +71,6 @@ BEGIN
         ) = ANY(p_gender_ids)
       )
 
-      -- avoid NULL problems
       AND NOT EXISTS (
         SELECT 1
         FROM user_given_names_states u
@@ -80,6 +86,26 @@ BEGIN
           AND u2.given_custom_name_bridge_id = b.id
           AND u2.state = 'snoozed'
           AND u2.date_created > NOW() - INTERVAL '24 hours'
+      )
+
+      AND (
+        p_language_ids IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM given_name_language_bridge gnlb
+          WHERE gnlb.given_name_id = gn.id
+            AND gnlb.language_id = ANY(p_language_ids)
+        )
+      )
+
+      AND (
+        p_culture_ids IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM given_name_culture_bridge gncb
+          WHERE gncb.given_name_id = gn.id
+            AND gncb.culture_id = ANY(p_culture_ids)
+        )
       )
   ),
 
