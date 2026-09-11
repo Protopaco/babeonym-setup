@@ -31,6 +31,16 @@ const commands: Record<string, PipelineCommand> = {
       await extractWiktionaryClaimsModule.default();
     },
   },
+  "wiktionary:refresh-language-codes": {
+    description:
+      "Store Wiktionary's language-code table, so origins written as code:term resolve to a language name.",
+    run: async () => {
+      const refreshWiktionaryLanguageCodesModule = (await import(
+        "./stages/refreshWiktionaryLanguageCodes.js"
+      )) as unknown as { default: () => Promise<void> };
+      await refreshWiktionaryLanguageCodesModule.default();
+    },
+  },
   "wikidata:refresh-types": {
     description:
       "Resolve everything Wikidata treats as a given name, so batch queries can skip the subclass walk.",

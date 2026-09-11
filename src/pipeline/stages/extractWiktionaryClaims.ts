@@ -39,6 +39,27 @@ const getDocumentsToExtract = async (limit: number) => {
 };
 
 /**
+ * Some origins are written as a code and a term — from=de:Elisabeth — and the
+ * code only means something against Wiktionary's own table. Read from the
+ * workbench rather than fetched, so extraction never touches the network.
+ */
+const getCanonicalNameByCode = async () => {
+  const result = await query(
+    `SELECT code, canonical_name FROM wiktionary_language_codes`,
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error(
+      "No Wiktionary language codes stored. Run wiktionary:refresh-language-codes first.",
+    );
+  }
+
+  return new Map(
+    result.rows.map((row) => [row.code as string, row.canonical_name as string]),
+  );
+};
+
+/**
  * Extraction rules are expected to be rewritten and re-run. Clearing the
  * previous output for a document keeps a re-run from leaving stale claims
  * behind, but only rows still sitting at 'candidate' are removed — anything
@@ -66,6 +87,12 @@ const clearPreviousCandidateClaims = async (sourceDocumentId: number) => {
   );
 };
 
+/**
+ * A meaning's language is part of what makes it distinct, so the existence
+ * check compares it too — otherwise the same gloss translating two languages
+ * keeps only whichever was saved first. Claims with no language in their
+ * evidence compare equal, as before.
+ */
 const saveClaim = async (
   document: SourceDocumentRow,
   claim: ExtractedNameClaim,
@@ -92,6 +119,7 @@ const saveClaim = async (
           AND claim_value = $3
           AND source_document_id = $4
           AND extraction_method = $5
+          AND evidence->>'language' IS NOT DISTINCT FROM ($7::jsonb)->>'language'
       )
     `,
     [
@@ -158,6 +186,7 @@ const saveRelationshipClaim = async (
 
 export default async () => {
   const limit = getPositiveIntArg("--limit", 50, 200000);
+  const canonicalNameByCode = await getCanonicalNameByCode();
   const documents = await getDocumentsToExtract(limit);
 
   console.log(
@@ -170,7 +199,10 @@ export default async () => {
 
   try {
     for (const document of documents) {
-      const { claims, relationships } = extractClaims(document.raw_text);
+      const { claims, relationships } = extractClaims(
+        document.raw_text,
+        canonicalNameByCode,
+      );
 
       await clearPreviousCandidateClaims(document.source_document_id);
 
@@ -199,7 +231,7 @@ export default async () => {
       `  ${documentsWithGivenNameContent}/${documents.length} documents had given-name content.`,
     );
     console.log(
-      `  ${aliasSummary.newAliasCount} new language tokens, ${aliasSummary.autoMappedCount} auto-mapped, ${aliasSummary.unreviewedAliasCount} awaiting review.`,
+      `  ${aliasSummary.newAliasCount} new language tokens, ${aliasSummary.autoMappedCount} auto-mapped, ${aliasSummary.removedAliasCount} no longer produced and removed, ${aliasSummary.unreviewedAliasCount} awaiting review.`,
     );
   } finally {
     await closePool();

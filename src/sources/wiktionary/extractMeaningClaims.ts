@@ -1,4 +1,5 @@
 import normaliseMeaningText from "./normaliseMeaningText";
+import { CODE_AND_TERM } from "./parseFromField";
 import parseSections from "./parseSections";
 import parseTemplates, { WikitextTemplate } from "./parseTemplates";
 import type { ExtractedNameClaim } from "../claimTypes";
@@ -12,6 +13,15 @@ import type { ExtractedNameClaim } from "../claimTypes";
  */
 const DERIVATION_TEMPLATES: Record<string, number> = { der: 4, bor: 4, inh: 4 };
 const MENTION_TEMPLATES: Record<string, number> = { m: 3, cog: 3 };
+
+/**
+ * Which positional slot holds the language the gloss translates. A derivation
+ * template's first language is the entry's own and its second is the source —
+ * "hbo" in {{der|en|hbo|מִיכָאֵל}} — and the gloss belongs to the source. A
+ * mention template names only the one.
+ */
+const DERIVATION_LANGUAGE_SLOT = 1;
+const MENTION_LANGUAGE_SLOT = 0;
 
 const DERIVATION_METHOD = "wiktionary_derivation_gloss";
 const MENTION_METHOD = "wiktionary_mention_gloss";
@@ -59,12 +69,49 @@ const readGloss = (template: WikitextTemplate, positionalSlot: number) => {
 };
 
 /**
+ * The code as written, with Wiktionary's name for it. The alias decisions are
+ * keyed on the name, so the name is what a later stage resolves to a language
+ * row. A code the table does not know keeps its text and gets no name.
+ */
+const readLanguage = (
+  languageCode: string | undefined,
+  canonicalNameByCode: Map<string, string>,
+) => {
+  const writtenCode = languageCode?.trim();
+
+  if (!writtenCode) {
+    return { languageCode: null, language: null };
+  }
+
+  return {
+    languageCode: writtenCode,
+    language: canonicalNameByCode.get(writtenCode) ?? null,
+  };
+};
+
+/**
+ * {{ety}} writes the source language onto the term — grc:πέτρα<t:rock> — and
+ * leaves it off a term in the entry's own language, as with ursa<t:she-bear> in
+ * {{ety|la|…}}.
+ */
+const readEtyLanguageCode = (template: WikitextTemplate, term: string) =>
+  term.match(CODE_AND_TERM)?.[1] ?? template.positional[0];
+
+/**
  * Meaning is never a field on {{given name}} — it lives in the etymology.
  *
  * Extraction is scoped to language sections that actually carry a given-name
  * template, or a page like Mason takes its meaning from the stonework entry.
+ *
+ * Each meaning records the language its gloss translates, which is not the
+ * section it sits under: "who is like God?" under English translates the
+ * Hebrew. The language is stored as Wiktionary names it and resolved to a
+ * language row later, against the same alias decisions as origins.
  */
-export default (wikitext: string): ExtractedNameClaim[] => {
+export default (
+  wikitext: string,
+  canonicalNameByCode: Map<string, string>,
+): ExtractedNameClaim[] => {
   const languageSections = parseSections(wikitext, 2);
   const templates = parseTemplates(wikitext);
 
@@ -86,7 +133,13 @@ export default (wikitext: string): ExtractedNameClaim[] => {
   const seenClaimKeys = new Set<string>();
 
   const addClaim = (claim: ExtractedNameClaim) => {
-    const claimKey = [claim.claimValue, claim.extractionMethod].join("|");
+    // Language is part of what makes a meaning distinct: the same gloss given
+    // for a Latin form and again for a Greek one is two claims, not one.
+    const claimKey = [
+      claim.claimValue,
+      claim.extractionMethod,
+      claim.evidence.language ?? "",
+    ].join("|");
 
     if (seenClaimKeys.has(claimKey)) {
       return;
@@ -110,28 +163,41 @@ export default (wikitext: string): ExtractedNameClaim[] => {
           template.startIndex < subsection.endIndex,
       )?.title ?? null;
 
-    const buildEvidence = (field: string) => ({
+    const buildEvidence = (
+      field: string,
+      language: ReturnType<typeof readLanguage>,
+    ) => ({
       section: section.title,
       subsection: subsectionTitle,
       template: template.name,
       field,
       raw: template.raw,
+      languageCode: language.languageCode,
+      language: language.language,
     });
 
-    // {{ety}} carries its gloss as an inline <t:...> annotation rather than an
-    // argument, so it is read off the raw text.
+    // {{ety}} carries its gloss as an inline <t:...> annotation on a term rather
+    // than as an argument, so each term is read for one.
     if (template.name === "ety") {
-      for (const match of template.raw.matchAll(/<t:([^>]*)>/g)) {
-        const meaningText = normaliseMeaningText(match[1]);
+      for (const term of template.positional.slice(1)) {
+        for (const match of term.matchAll(/<t:([^>]*)>/g)) {
+          const meaningText = normaliseMeaningText(match[1]);
 
-        if (meaningText) {
-          addClaim({
-            claimType: "meaning",
-            claimValue: meaningText,
-            extractionMethod: DERIVATION_METHOD,
-            confidence: TRANSLATION_FIELD_CONFIDENCE,
-            evidence: buildEvidence("ety<t:>"),
-          });
+          if (meaningText) {
+            addClaim({
+              claimType: "meaning",
+              claimValue: meaningText,
+              extractionMethod: DERIVATION_METHOD,
+              confidence: TRANSLATION_FIELD_CONFIDENCE,
+              evidence: buildEvidence(
+                "ety<t:>",
+                readLanguage(
+                  readEtyLanguageCode(template, term),
+                  canonicalNameByCode,
+                ),
+              ),
+            });
+          }
         }
       }
 
@@ -159,12 +225,19 @@ export default (wikitext: string): ExtractedNameClaim[] => {
       continue;
     }
 
+    const languageSlot = isDerivation
+      ? DERIVATION_LANGUAGE_SLOT
+      : MENTION_LANGUAGE_SLOT;
+
     addClaim({
       claimType: "meaning",
       claimValue: meaningText,
       extractionMethod: isDerivation ? DERIVATION_METHOD : MENTION_METHOD,
       confidence: isDerivation ? gloss.confidence : MENTION_GLOSS_CONFIDENCE,
-      evidence: buildEvidence(gloss.field),
+      evidence: buildEvidence(
+        gloss.field,
+        readLanguage(template.positional[languageSlot], canonicalNameByCode),
+      ),
     });
   }
 

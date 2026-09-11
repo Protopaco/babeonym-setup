@@ -25,8 +25,12 @@ structure that isn't tied to any single source.
 
 ## Posture
 
-- **Pre-release.** No users, nothing to preserve. Existing data is disposable
-  and changing it breaks nothing.
+- **Pre-release.** No users, nothing to preserve, and changing data breaks
+  nothing. That once extended to calling the existing data disposable, and the
+  comparison on 2026-09-10 showed otherwise: the old Wikipedia scrape has a
+  meaning for nearly twice as many names as Wiktionary's clean tier, and is the
+  only source of culture at all. It is merged with the new sources rather than
+  replaced by them.
 - **Meaningful, not authoritative.** This is an app for choosing a baby name,
   not a linguistics reference. Name meanings are subjective and the sources are
   public, so everything is taken with a grain of salt. The bar is "enough to
@@ -70,6 +74,14 @@ structure that isn't tied to any single source.
   meaning turns out to be thin without a model, that's the evidence for buying
   API credits — and the stored raw documents mean a model pass costs nothing
   extra in fetching.
+- **Meaning did come out thin, and rules still go first.** Wiktionary alone
+  gave meaning for 2.4% of the corpus, which meets the condition above, but a
+  model pass can only be judged against a baseline. So the deterministic
+  normaliser runs over both sources first, and a model is aimed at what the
+  rules demonstrably cannot reach: the 895 phrases dropped for length, some of
+  them real meanings, and the 3,047 names whose only old meaning is Wikipedia's
+  opening paragraph. Casing stays out of it — a short list of proper nouns is
+  easier to audit than any model call.
 
 ---
 
@@ -112,12 +124,12 @@ structure that isn't tied to any single source.
   authoritative; both are working vocabularies. Adding historical languages
   where they're meaningful in their own right is acceptable — `Latin` and
   `Yiddish` are already there, both using 🌍 as the flag.
-- **Review is weighted, not exhaustive.** Extraction over the full corpus threw
-  up 366 unreviewed tokens covering 3,146 claims, but the distribution is
-  lopsided: 21 tokens carried 2,351 of those claims and 306 carried fewer than
-  five names each. The 21 were decided by hand on 2026-09-10; the tail was left
-  alone deliberately, since grinding through 345 tokens worth two names apiece
-  costs far more than it returns.
+- **Review starts with the weight.** Extraction over the full corpus threw up
+  366 unreviewed tokens covering 3,146 claims, but the distribution is lopsided:
+  21 tokens carried 2,351 of those claims and 306 carried fewer than five names
+  each. The 21 were decided by hand on 2026-09-10 and the tail set aside. It was
+  worked in full the next day, once thin languages were judged worth a row —
+  see below.
 - **Of those 21:** 11 languages added, 4 historical forms folded, 1 synonym
   mapped, 5 rejected. Added were Sanskrit, Old Norse, Walloon, Atayal, Asturian,
   Esperanto, Lun Bawang, Greenlandic, Ingrian, Tausug and Aramaic. Folded were
@@ -145,6 +157,45 @@ structure that isn't tied to any single source.
   with an asterisk, that no parent will ever filter by. Its 30 names are Romance
   forms of Germanic names — Roberto, Eduardo, Alberto — and the claim survives
   in the table if "Germanic origin" ever becomes a feature.
+- **A real language gets a row, however few names carry it** (2026-09-11). A
+  row costs nothing and gives the next source somewhere to land. A thin
+  language is kept out of the filter by the cutoff, but it still shows on the
+  names that carry it — Khaleesi can show Dothraki with no Dothraki filter.
+  Most of the 257 languages now in the table have fewer than ten names.
+- **Historical and regional forms fold into their language, as a rule.** What
+  004 and 005 did case by case — Old English to English, Brazilian Portuguese to
+  Portuguese — became the rule for the tail. It covers old and middle stages
+  (Middle French, Koine Greek), regional varieties (Swiss German, Mexican
+  Spanish) and other names for the same language (Nynorsk, Valencian,
+  Moldovan). Where a token names two reference languages the base is the one
+  named last: Latin American Spanish is Spanish, Welsh English is English. Where
+  no base exists yet, one new row stands for all the forms: Upper and Lower
+  Sorbian are Sorbian.
+- **Precedents for the judgment calls.** Extinct languages with an identity of
+  their own get a row: Old Norse, Yola, Illyrian, Gothic, Etruscan.
+  Reconstructions do not, so every Proto- language is rejected. A language with
+  several descendants keeps its own row rather than being folded into one of
+  them arbitrarily: Old Norse, Frankish, Old Turkic. Invented languages from
+  fiction get rows — Dothraki, High Valyrian, Sindarin — since the tag is true
+  of Khaleesi, Daenerys and Galadriel. Families, countries and origin
+  categories are rejected, and so are tokens naming several languages at once
+  (Italian or Greek), because an alias can point at only one.
+- **Wikidata items are reviewed by identifier, not by label.** The identifier
+  is the table's key and does not change; labels are edited by anyone. Bangla
+  maps to the existing Bengali row, which keeps its label because it is the name
+  most English-speaking parents will look for. Brazilian Portuguese folds into
+  Portuguese but keeps its item identifier in `name_claims`, so a Brazilian
+  culture can pick those names up later.
+- **Codes resolve through Wiktionary's own table.** Some entries write an
+  origin as a language code and a term — `from=de:Elisabeth` — which the first
+  parser stored as a language called "de:Elisabeth". The 8,965 codes in
+  Wiktionary's published modules, held in `wiktionary_language_codes`, resolve
+  to canonical names. Those are the same strings the alias table already holds
+  decisions for, so codes need no review of their own.
+- **Where it ended up (2026-09-11).** Both review queues are empty: 245
+  Wiktionary tokens mapped and 56 rejected, 251 Wikidata items mapped and 21
+  rejected. Once old and new are combined, 17,617 names carry a language,
+  against 4,889 in the old data alone.
 
 ---
 
@@ -179,10 +230,42 @@ structure that isn't tied to any single source.
   bonus when present, not something to design around.
 - **Multiple senses are presented as one line**, composed by the UI —
   "beautiful fragrance (Japanese); who is like God (Hebrew)" — not as separate
-  meaning entries per origin.
+  meaning entries per origin. So the API returns the parts, not the line: an
+  array of `{ text, language }`. Composing is one line of frontend; pulling a
+  composed string apart again is parsing.
 - **The existing `given_name_meaning` table is left untouched through round
   one**, so the old Wikipedia data survives for comparison. Its fate is decided
   after that comparison, not before.
+- **Old and new are merged, not ranked** (2026-09-10). On the top 1,000 names
+  the old scrape had a meaning for 530 and Wiktionary's clean tier for 300, and
+  the two barely overlap — 363 meanings in common. Merged, they cover 3,744
+  names, where either source alone covers about 2,600.
+- **A meaning is a short phrase.** Several senses in one string — "Girl,
+  Woman", "female child, girl, maiden" — become separate phrases, and a phrase
+  over 25 characters is dropped. Splitting first is what makes the limit work:
+  98% of Wiktionary phrases and 79% of old ones fit afterwards, and most of what
+  does not is commentary or prose rather than a long meaning.
+- **One normaliser for both sources**, writing to
+  `normalised_meaning_candidates` and keeping the text each phrase was cut
+  from, so the rules can be audited from their own output. It straightens
+  quotes, splits on commas, semicolons and "or", drops phrases that are over
+  length, identical to the name or commentary ("feminine form of Michael"), and
+  lowercases.
+- **Lowercase first, capitals later.** Lowercasing is what lets "Jewel" and
+  "jewel" dedupe, at the cost of proper nouns: "thor's stone". Restoring them is
+  a later pass that reads the untouched source columns. Whether "god" takes a
+  capital is deliberately left until then.
+- **`meaning_long` is not a meaning.** It holds Wikipedia's opening paragraph —
+  "Nikolaus is a given name. Notable people with this name include" — and 3,047
+  names have only that. It is not read as meaning, which settles whether
+  `meaning_short` and `meaning_long` both survive.
+- **Both confidence tiers are kept, and the floor is a query.** The mention
+  tier's noise ("male given name" for John) disappears at confidence 0.6, which
+  still leaves 2,808 names — more than either source alone.
+- **A meaning's language comes from the derivation, not the page.** In
+  `{{der|en|hbo|מִיכָאֵל|lit=who is like God?}}` the page section is English,
+  but the language the meaning belongs to is the second argument, `hbo`. That
+  code resolves through the same Wiktionary table as `from=`. Not populated yet.
 
 ---
 
@@ -207,6 +290,11 @@ publishing everything or parsing everything.
 - **Relationships:** `varof=` and `dimof=` 0.75, `eq=` 0.6, Wikidata's
   `short name` 0.8, `given name version for other gender` 0.85, `said to be the
   same as` 0.7.
+- **Two meaning sources added later.** A gloss written inline on a `from=` term
+  (`from=non:bjǫrn<t:bear>`) scores 0.8, alongside `t=`. The old Wikipedia
+  meanings score a flat 0.6: the scrape recorded no confidence, and 0.6 places
+  them between a stated derivation gloss and a mention gloss, which is where the
+  comparison put them.
 
 The tiering earns its keep on the first names checked. John scores
 "Yahweh is gracious" at 0.8 from a derivation template and "male given name"
@@ -285,9 +373,18 @@ value, which is the interaction with names.
 
 ## Filters
 
-- **A filter is only offered if it has enough names to be meaningful** — at
-  least 5, possibly 10. The exact number is set once real distributions are
-  visible. An empty filter is worse than no filter.
+- **A filter is only offered if it has at least 10 names** (set 2026-09-11,
+  against real distributions). An empty filter is worse than no filter. 15 was
+  considered and would have dropped Georgian, Cornish, Urdu and Punjabi — Urdu
+  and Punjabi low not because the names are rare but because English
+  Wiktionary misses names written in their own scripts. At 10, old and new
+  combined give 97 language filters.
+- **The cutoff is not built yet.** `get_name_filters()` currently returns every
+  language row. The order of work is building the data, then reading it, then
+  displaying it, and the cutoff belongs to displaying.
+- **Below the cutoff is not invisible.** A name's own details show its
+  languages whatever their size, so a thin language still appears on the names
+  that carry it.
 - **Coverage is measured per language and per culture**, not just overall. The
   number that predicts whether the Greek filter is any good is how many names
   carry the Greek tag — not what percentage of the dataset matched something.
@@ -304,8 +401,8 @@ Sophia, Mika, Siobhan, Mateo, Myles, Dashiell, Ravi, Lakshmi.
 - **`{{given name|...}}` is reliably present**, once per language section. A
   page has as many as there are languages — Michael has about ten.
 - **The first two positional arguments are language code and gender**
-  (`{{given name|en|male|from=Hebrew}}`). Both are currently discarded by
-  `extractClaims.ts`, which only reads parts containing `=`.
+  (`{{given name|en|male|from=Hebrew}}`). The original regex discarded both;
+  the brace-matching template parser now reads them.
 - **Named fields observed:** `from=`, `dimof=`, `varof=`, `eq=`, `xlit=`, `A=`,
   `usage=`.
 - **There is no meaning field.** Meaning lives in the etymology, in several
@@ -352,6 +449,22 @@ superseded by a complete run.
   Roughly 11% of derivation meanings in the sample. Subsection scoping does not
   fix it. Every meaning claim records its `subsection` in evidence so a rule can
   be written later and re-run for free.
+
+**`from=` has a syntax of its own (2026-09-11).** Wiktionary's template
+documentation defines it, and the first parser guessed.
+
+- A source is either a language name or a language code and a term —
+  `de:Ulrich` — and a term can carry inline modifiers: `non:bjǫrn<t:bear>`
+  glosses it, `<tr:…>` transliterates it. A chain of derivation is written with
+  ` < `, and the documentation requires the spaces; that is what tells a chain
+  from a modifier.
+- The first parser split on a bare `<`, so `from=la:Renātus<t:reborn>` became
+  two languages, "la:Renātus" and "t:reborn>". It also cut glosses in half at
+  their commas.
+- Of 9,057 `from=` values, 139 use code and term and 37 use modifiers; none use
+  an unspaced chain, so following the documentation lost nothing. The fix
+  removed 234 junk tokens from the review queue, added 68 language tags that no
+  source had carried, and recovered 26 glosses as meanings.
 
 ### Wikidata
 
@@ -404,6 +517,27 @@ an optimisation, was adopted as one, and cost most of a day.
   splitting handles it instead, and is now a safety net rather than the working
   mechanism.
 
+**What the full corpus gave (2026-09-11).** Fetched in about three hours once
+the query shape was fixed, with no batches skipped.
+
+- **26,780 of 104,819 names matched a given-name item**, yielding 39,016 claims
+  and 35,280 relationships. Cognates dominate — 35,688 across both sources, on
+  9,121 names — which suits the decision that `said to be the same as` powers
+  related names and never meaning.
+- **The two sources overlap far less than expected.** Wiktionary put a language
+  on 12,050 names and Wikidata on 11,465; together they reach 17,408, 44% more
+  than Wiktionary alone.
+- **Some items were created in bulk and collide with other names.** 227 Seediq
+  items sit in one consecutive block, and their English labels match spellings
+  in the SSA data — Sita, Abu, Miyu. The tag is kept because it is additive: it
+  takes nothing from Sita's Sanskrit.
+- **Both sources are thin wherever names are written in another script.** Thai
+  has no names at all and Gujarati two, across both sources and the old data.
+  None of the 24,063 Wiktionary pages fetched has a Thai or Gujarati section —
+  most likely because English Wiktionary files those names under their own
+  script, while the SSA data holds Latin spellings. This is the bias
+  other-language Wiktionaries were set aside for.
+
 The two sources are complementary rather than competing: Wiktionary for meaning
 and origin, Wikidata for languages and relationships.
 
@@ -411,33 +545,36 @@ and origin, Wikidata for languages and relationships.
 
 ## Still open
 
-Updated 2026-09-10, after the corpus was fetched and Wiktionary extraction ran.
+Updated 2026-09-11, after both sources were fetched and extracted and both
+language review queues were emptied.
 
-Done since this was written: fetch ordering by popularity, the rate-limit and
-User-Agent problem, meaning extraction from the etymology templates, the
-Wikidata pull and its label-to-item rule, the language alias mapping, and the
-side-by-side comparison query.
+Done since the last update: the Wikidata fetch and extraction over the full
+corpus, both language reviews, the `from=` parser fix, the meaning comparison
+and normaliser, and the filter cutoff.
 
-What is actually left:
+What is left, roughly in order:
 
-- **Meaning coverage.** 2,558 names, 2.4% of the corpus. The decision deferred
-  from the start — whether that is enough, and whether it justifies buying API
-  credits for a model pass over the stored documents — can now be made against
-  real numbers rather than a guess.
+- **The language on meanings.** The derivation template's source code,
+  resolved through `wiktionary_language_codes`. The next build step, and cheap
+  now the table exists.
 - **The derivation-meaning bleed.** Around 11% of derivation meanings come from
   a surname or common-noun entry sharing the language section. `subsection` is
-  recorded in evidence, so the rule can be written and re-run without fetching.
-- **The 345 thin language tokens**, covering 795 claims at roughly two names
-  each. Left alone deliberately. Revisit only if language filtering turns out to
-  need that depth.
-- **Publishing.** Nothing has been written to `given_name_meaning`,
-  `given_name_language_bridge` or `given_name_culture_bridge`. The `meanings`,
-  `given_name_meaning_bridge` and `given_name_relationship_bridge` tables are
-  still designs on paper. Both were deliberately held until the comparison could
-  be read.
-- **Whether `meaning_short` and `meaning_long` both survive** — still deferred,
-  now for the last time, since the comparison it was waiting on can be run.
-- **Culture.** Untouched by round one. Still Wikipedia-sourced, still missing
-  most of Latin America from the reference list.
-- **Flags for the 23 languages added** across 037 and 038, all currently the 🌍
-  placeholder.
+  recorded in evidence, so a rule can be written and re-run without fetching.
+- **A model pass on what rules cannot reach**, measured against the current
+  baseline: the 895 over-length phrases and the 3,047 names whose only old
+  meaning is Wikipedia's opening paragraph.
+- **Publishing.** Nothing has been written to app-facing tables. `meanings`, its
+  bridge and `given_name_relationship_bridge` are still designs, and merging old
+  and new is now the premise they have to meet.
+- **Reports 001 and 005.** 001's meaning columns predate the merge and count
+  only Wiktionary claims. 005 lists 5,801 names alphabetically when its purpose
+  needs a per-language summary.
+- **The filter cutoff in `get_name_filters()`** — displaying, so after reading.
+- **Culture.** Untouched by round one and still Wikipedia-sourced. The list is
+  missing most of Latin America, a Brazilian culture (whose names are held by
+  item identifier), and Bengalis in India — `Bangladeshi` is the only Bengal
+  row.
+- **Flags.** The 162 languages added across 037 to 041 carry the 🌍 placeholder.
+- **The Wikidata alias refresh** lacks the stale-row cleanup the Wiktionary one
+  gained with the `from=` fix. Harmless until Wikidata extraction changes.
+- **Other-language Wiktionaries**, for the native-script gap above.

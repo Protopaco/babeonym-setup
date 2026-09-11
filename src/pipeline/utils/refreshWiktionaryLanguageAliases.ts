@@ -13,6 +13,12 @@ import { query } from "../../utils/postGresPool";
  * Counts are recomputed from name_claims rather than incremented, so running
  * extraction twice does not inflate them. Rows already reviewed keep their
  * status and mapping — only the frequency moves.
+ *
+ * A token extraction stops producing is removed while it is still unreviewed.
+ * Otherwise a parser fix — reading "de:Elisabeth" as German rather than as a
+ * language called "de:Elisabeth" — would leave the old token in the queue for
+ * good, still showing the count it had when last seen. A mapped or rejected row
+ * is a decision and stays even if its token disappears.
  */
 export default async () => {
   const inserted = await query(
@@ -35,6 +41,20 @@ export default async () => {
       FROM languages matched_language
       WHERE alias_row.status = 'unreviewed'
         AND LOWER(matched_language.label) = LOWER(alias_row.alias)
+    `,
+  );
+
+  const removed = await query(
+    `
+      DELETE FROM wiktionary_language_aliases alias_row
+      WHERE alias_row.status = 'unreviewed'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM name_claims
+          WHERE claim_type = 'language_of_origin'
+            AND extraction_method LIKE 'wiktionary%'
+            AND claim_value = alias_row.alias
+        )
     `,
   );
 
@@ -66,6 +86,7 @@ export default async () => {
   return {
     newAliasCount: inserted.rowCount ?? 0,
     autoMappedCount: autoMapped.rowCount ?? 0,
+    removedAliasCount: removed.rowCount ?? 0,
     unreviewedAliasCount: Number(unreviewed.rows[0].unreviewed_count),
   };
 };
