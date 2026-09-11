@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "pipeline": "node --import tsx src/pipeline/index.ts"
   },
   "keywords": [],
   "author": "",
