@@ -1,6 +1,6 @@
 import normaliseMeaningText from "./normaliseMeaningText";
 import { CODE_AND_TERM } from "./parseFromField";
-import parseSections from "./parseSections";
+import parseSections, { WikitextSection } from "./parseSections";
 import parseTemplates, { WikitextTemplate } from "./parseTemplates";
 import type { ExtractedNameClaim } from "../claimTypes";
 
@@ -22,6 +22,12 @@ const MENTION_TEMPLATES: Record<string, number> = { m: 3, cog: 3 };
  */
 const DERIVATION_LANGUAGE_SLOT = 1;
 const MENTION_LANGUAGE_SLOT = 0;
+
+/**
+ * An un-numbered Etymology heading covers every entry in its language section,
+ * so a gloss under it cannot be narrowed to one entry and is kept.
+ */
+const SHARED_ETYMOLOGY_TITLE = "Etymology";
 
 const DERIVATION_METHOD = "wiktionary_derivation_gloss";
 const MENTION_METHOD = "wiktionary_mention_gloss";
@@ -101,7 +107,9 @@ const readEtyLanguageCode = (template: WikitextTemplate, term: string) =>
  * Meaning is never a field on {{given name}} — it lives in the etymology.
  *
  * Extraction is scoped to language sections that actually carry a given-name
- * template, or a page like Mason takes its meaning from the stonework entry.
+ * template, or a page like Mason takes its meaning from the stonework entry —
+ * and, where a section files several entries under numbered etymologies, to the
+ * one holding the given name.
  *
  * Each meaning records the language its gloss translates, which is not the
  * section it sits under: "who is like God?" under English translates the
@@ -121,14 +129,35 @@ export default (
         startIndex >= section.contentStartIndex && startIndex < section.endIndex,
     );
 
+  const givenNameTemplateIndexes = templates
+    .filter((template) => template.name === "given name")
+    .map((template) => template.startIndex);
+
   const givenNameSectionTitles = new Set(
-    templates
-      .filter((template) => template.name === "given name")
-      .map((template) => findSection(template.startIndex)?.title)
+    givenNameTemplateIndexes
+      .map((startIndex) => findSection(startIndex)?.title)
       .filter((title): title is string => Boolean(title)),
   );
 
   const subsections = parseSections(wikitext, 3);
+
+  /**
+   * A language section can hold several entries, each under its own numbered
+   * etymology: Miranda's given name sits under Etymology 1 and the surname
+   * under Etymology 2, whose "surname" glosses are not the name's meaning. A
+   * gloss counts from the subsection holding the given name, or from a single
+   * Etymology heading, which covers every entry in the section.
+   */
+  const subsectionDescribesGivenName = (
+    subsection: WikitextSection,
+    section: WikitextSection,
+  ) =>
+    subsection.title === SHARED_ETYMOLOGY_TITLE ||
+    givenNameTemplateIndexes.some(
+      (startIndex) =>
+        startIndex >= subsection.contentStartIndex &&
+        startIndex < Math.min(subsection.endIndex, section.endIndex),
+    );
   const claims: ExtractedNameClaim[] = [];
   const seenClaimKeys = new Set<string>();
 
@@ -156,12 +185,22 @@ export default (
       continue;
     }
 
-    const subsectionTitle =
-      subsections.find(
-        (subsection) =>
-          template.startIndex >= subsection.contentStartIndex &&
-          template.startIndex < subsection.endIndex,
-      )?.title ?? null;
+    // A subsection runs to the next heading at its level, which can sit in the
+    // next language section, so only one headed inside this section counts.
+    const subsection = subsections.find(
+      (candidate) =>
+        candidate.contentStartIndex > section.contentStartIndex &&
+        template.startIndex >= candidate.contentStartIndex &&
+        template.startIndex < candidate.endIndex,
+    );
+
+    // A gloss above the section's first subheading has nothing to narrow it to
+    // one entry, so it is kept.
+    if (subsection && !subsectionDescribesGivenName(subsection, section)) {
+      continue;
+    }
+
+    const subsectionTitle = subsection?.title ?? null;
 
     const buildEvidence = (
       field: string,

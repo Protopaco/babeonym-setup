@@ -172,6 +172,10 @@ export default async () => {
       const { phrases, dropped } = normaliseMeaningPhrases(
         row.raw_text,
         row.given_name,
+        // Wiktionary writes a gloss lowercase unless it is a proper noun, so a
+        // capital there means something. The Wikipedia scrape is Title Case
+        // throughout and cannot be read that way.
+        row.source === "wiktionary",
       );
 
       for (const drop of dropped) {

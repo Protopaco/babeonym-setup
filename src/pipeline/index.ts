@@ -80,6 +80,36 @@ const commands: Record<string, PipelineCommand> = {
       await normaliseMeaningsModule.default();
     },
   },
+  "meanings:load-curated": {
+    description:
+      "Load the curated meaning batches from CSV, replacing whatever was loaded before.",
+    run: async () => {
+      const loadCuratedMeaningsModule = (await import(
+        "./stages/loadCuratedMeanings.js"
+      )) as unknown as { default: () => Promise<void> };
+      await loadCuratedMeaningsModule.default();
+    },
+  },
+  "languages:publish": {
+    description:
+      "Add the languages resolved from both sources to the bridge the app reads.",
+    run: async () => {
+      const publishLanguagesModule = (await import(
+        "./stages/publishLanguages.js"
+      )) as unknown as { default: () => Promise<void> };
+      await publishLanguagesModule.default();
+    },
+  },
+  "meanings:publish": {
+    description:
+      "Copy the confident tier of normalised meanings into the app-facing meanings tables.",
+    run: async () => {
+      const publishMeaningsModule = (await import(
+        "./stages/publishMeanings.js"
+      )) as unknown as { default: () => Promise<void> };
+      await publishMeaningsModule.default();
+    },
+  },
   "workbench:init": {
     description: "Create and seed the additive data-generation workbench tables.",
     run: async () => {

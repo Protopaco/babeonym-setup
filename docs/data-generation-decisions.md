@@ -161,7 +161,7 @@ structure that isn't tied to any single source.
   row costs nothing and gives the next source somewhere to land. A thin
   language is kept out of the filter by the cutoff, but it still shows on the
   names that carry it — Khaleesi can show Dothraki with no Dothraki filter.
-  Most of the 257 languages now in the table have fewer than ten names.
+  Most of the 283 languages now in the table have fewer than ten names.
 - **Historical and regional forms fold into their language, as a rule.** What
   004 and 005 did case by case — Old English to English, Brazilian Portuguese to
   Portuguese — became the rule for the tail. It covers old and middle stages
@@ -192,8 +192,20 @@ structure that isn't tied to any single source.
   Wiktionary's published modules, held in `wiktionary_language_codes`, resolve
   to canonical names. Those are the same strings the alias table already holds
   decisions for, so codes need no review of their own.
-- **Where it ended up (2026-09-11).** Both review queues are empty: 245
-  Wiktionary tokens mapped and 56 rejected, 251 Wikidata items mapped and 21
+- **Meanings brought their own languages** (2026-09-11). The language a gloss
+  translates is often one no entry wrote in `from=` — Akkadian behind Balthazar,
+  Zapotec behind Nayeli — so the origin review never saw it. 64 such names were
+  reviewed on the same rules and recorded in workbench 012 and 014, with rows
+  from migrations 042 and 043. Of the 64, 25 got a row of their own, 16 folded
+  into a language, 9 already matched a row and 14 were rejected; the 26 rows
+  added include Mari, which stands for Western Mari. The calls worth
+  remembering: Venetic is an unrelated ancient language and does not fold into
+  Venetian; Chinook Jargon folds into Chinook, whose only name, Sahalie, comes
+  from it; Old Church Slavonic and Old East Slavic keep rows for their several
+  descendants; Cumbric and Sudovian keep rows as sister languages of Welsh and
+  Lithuanian rather than earlier forms of them.
+- **Where it ended up (2026-09-11).** Both review queues are empty: 295
+  Wiktionary tokens mapped and 70 rejected, 251 Wikidata items mapped and 21
   rejected. Once old and new are combined, 17,617 names carry a language,
   against 4,889 in the old data alone.
 
@@ -225,9 +237,9 @@ structure that isn't tied to any single source.
 - **Meaning text is normalised before insert** — trimming, casing, trailing
   punctuation — or dedup produces near-duplicate rows rather than genuine
   sharing.
-- **Origin attribution is optional and usually absent.** Sources rarely make
-  the link between a specific sense and a specific origin explicit. It's a
-  bonus when present, not something to design around.
+- **Origin attribution is optional.** It's a bonus when present, not something
+  to design around. In practice it depends on the source: Wiktionary names the
+  language for most of its meanings, and the old Wikipedia scrape never does.
 - **Multiple senses are presented as one line**, composed by the UI —
   "beautiful fragrance (Japanese); who is like God (Hebrew)" — not as separate
   meaning entries per origin. So the API returns the parts, not the line: an
@@ -238,7 +250,7 @@ structure that isn't tied to any single source.
   after that comparison, not before.
 - **Old and new are merged, not ranked** (2026-09-10). On the top 1,000 names
   the old scrape had a meaning for 530 and Wiktionary's clean tier for 300, and
-  the two barely overlap — 363 meanings in common. Merged, they cover 3,744
+  the two barely overlap — 363 meanings in common. Merged, they cover 3,449
   names, where either source alone covers about 2,600.
 - **A meaning is a short phrase.** Several senses in one string — "Girl,
   Woman", "female child, girl, maiden" — become separate phrases, and a phrase
@@ -259,13 +271,61 @@ structure that isn't tied to any single source.
   "Nikolaus is a given name. Notable people with this name include" — and 3,047
   names have only that. It is not read as meaning, which settles whether
   `meaning_short` and `meaning_long` both survive.
-- **Both confidence tiers are kept, and the floor is a query.** The mention
-  tier's noise ("male given name" for John) disappears at confidence 0.6, which
-  still leaves 2,808 names — more than either source alone.
+- **Both confidence tiers are kept, and the floor moved** (2026-09-11). The
+  mention tier was held back at 0.6 while it carried the noise. Once the bleed,
+  the filler and the name-pointers were dropped at normalisation, what was left
+  in it read as ordinary — Matthew's "gift of the Lord", Catherine's "pure",
+  Edward's "rich" — and holding the floor there left those pages blank while the
+  data sat in the workbench. The floor is 0.5, so everything the normaliser
+  keeps is published, and confidence rides on every row for a consumer that
+  wants only the stronger tier.
 - **A meaning's language comes from the derivation, not the page.** In
   `{{der|en|hbo|מִיכָאֵל|lit=who is like God?}}` the page section is English,
-  but the language the meaning belongs to is the second argument, `hbo`. That
-  code resolves through the same Wiktionary table as `from=`. Not populated yet.
+  but the language the meaning belongs to is the second argument, `hbo`. Where
+  the code sits depends on the template: second in `der`, `bor` and `inh`, first
+  in `m` and `cog`, and on the term itself in `{{ety}}` and `from=` — falling
+  back to the entry's own language when an `{{ety}}` term carries none. It is
+  stored on the claim as Wiktionary names it and resolved at normalisation
+  through the same alias decisions as origins, so a later decision needs no
+  re-extraction. Only a mapped decision sets `language_id` (2026-09-11).
+- **Proto-language meanings have no language.** Vladimir's "be strong" traces
+  to Proto-Indo-European, which is accurate etymology, but tagging it would need
+  a row for a reconstruction the language review rejects. 597 phrases are blank
+  for that reason, and the claim's evidence keeps the code if that ever changes.
+- **The same phrase in two languages is two meanings.** Language is part of the
+  key from claim extraction through to `normalised_meaning_candidates`, whose
+  unique index treats blank languages as equal so untagged phrases still dedupe.
+  Leo is "lion" in Greek, Latin and Sumerian; 77 phrases across 60 names are
+  kept this way. Before, whichever template came first on the page won.
+- **A meaning that points at another name is not a meaning** (2026-09-11).
+  Alexander as "son of Alexander" and Carter as "son of Arthur" say nothing: the
+  meaning lives in the name being pointed at. A capital after "of" is what marks
+  one, so meanings built from the same words stay — Benjamin as "son of the
+  right hand", Bathsheba as "daughter of an oath", Ward as "son of the poet".
+  The rule runs in the normaliser, over both sources; Wikipedia lost Addison as
+  "son of Adam" and Hudson as "son of Hugh" with it. A second half followed: a
+  gloss that is a single capitalised word is a name too — Kadi as "Catherine",
+  Sasha as "Alexander" — which is read only on Wiktionary, whose glosses are
+  lowercase unless they name something, while the Wikipedia scrape is Title Case
+  throughout and its "Lion" is a meaning. Together they remove 493 phrases.
+  21 names were left with no meaning, Bowen and Redmond and Kermit among them,
+  which is the honest result: "son of Owen" answers the question with the
+  question. Resolving what Owen, Rian and Talmai mean is a later job, and the
+  claims keep their evidence for it.
+- **Where it ended up (2026-09-11).** 3,911 phrases across 2,064 names carry a
+  language, drawn from 104 languages. The rest of the 3,449 names with a meaning
+  are mostly Wikipedia meanings, which record
+  no language. Six claims carry a code outside Wiktionary's language table — a
+  family such as `gem`, or several languages at once such as `es,pt` — and stay
+  blank.
+- **Published on 2026-09-11.** 7,558 pairings across 3,449 names went into
+  `meanings` and `given_name_meaning_bridge`, and the languages resolved from
+  both sources were merged into the bridge the app already reads: 28,757
+  pairings added, taking it from 4,889 names to 17,617 across 253 languages.
+  Coverage is strongest where it matters — a meaning on 83% of the top hundred
+  names and 60% of the top thousand, a language on 100% and 99%. Seventeen of
+  the top hundred still have none, and some of those are the 25-character limit
+  rather than a missing source: Jessica's only meaning is 27 characters long.
 
 ---
 
@@ -327,7 +387,8 @@ defended. Re-running extraction is minutes, so changing them is cheap.
 
 - `meanings` — deduplicated meaning text
 - `given_name_meaning_bridge` — name to meaning, carrying the optional
-  language, source document, extraction method and confidence
+  language, the source, the extraction method and the confidence. Built and
+  filled on 2026-09-11; `given_name_relationship_bridge` is still a design
 - `given_name_relationship_bridge` — name to name, with the relationship type
   enum. `given_name_given_name_bridge` was considered; it names what is linked
   but not why, and the relationship type is the point of the table.
@@ -436,19 +497,27 @@ superseded by a complete run.
   half. The other half are common nouns, surnames and foreign words that happen
   to share the spelling. This is the gap the two match measures were meant to
   expose, and it is much wider than expected.
-- **45,975 claims and 3,556 relationships.** Language on 12,050 names, gender on
-  11,993, and **meaning on 2,558** — 21% of the names Wiktionary covers, 2.4% of
+- **45,763 claims and 3,556 relationships.** Language on 12,050 names, gender on
+  11,993, and **meaning on 2,479** — 21% of the names Wiktionary covers, 2.4% of
   the corpus. Relationships split cognate 1,462, diminutive 1,101, variant 993.
 - **Meaning is the thin one, and that is the finding.** Wiktionary gives
-  language, gender and relationships broadly and meaning narrowly. Whether 2,558
+  language, gender and relationships broadly and meaning narrowly. Whether 2,479
   is enough, and what to do if not, is the open question — deferred until the
   side-by-side against the old Wikipedia data has been read.
-- **A known extraction fault, not yet fixed.** Where a page's given-name and
-  surname entries share one language section, the meaning can be drawn from the
-  wrong one — Alexander as "son of Alexander", Carter as "son of Arthur".
-  Roughly 11% of derivation meanings in the sample. Subsection scoping does not
-  fix it. Every meaning claim records its `subsection` in evidence so a rule can
-  be written later and re-run for free.
+- **The extraction fault this exposed, fixed on 2026-09-11.** Where a page's
+  given-name and surname entries share one language section, the meaning was
+  drawn from the wrong one. Pages filing their entries under numbered
+  etymologies can be separated: a gloss is read only from the subsection holding
+  the given name, or from a single un-numbered Etymology, which covers the whole
+  section. That removed 254 claims across 154 names, and 81 names turned out to
+  carry nothing but bleed — Henry as "son of Henry", Valerie as "the drug LSD",
+  Marilyn as "any Scottish mountain taller than 3,000 feet". One real meaning
+  went with them, Noel as "Christmas", which Wiktionary files under the
+  holiday's etymology rather than the name's. The earlier guess of roughly 11%
+  is now a measurement: 254 of 4,321 gloss claims, about 6%, were separable by
+  structure. What is left shares one etymology with the entry it belongs to —
+  Carter as "son of Arthur" — or sits in a Proper noun block holding both
+  entries, as Alexander does.
 
 **`from=` has a syntax of its own (2026-09-11).** Wiktionary's template
 documentation defines it, and the first parser guessed.
@@ -550,22 +619,28 @@ language review queues were emptied.
 
 Done since the last update: the Wikidata fetch and extraction over the full
 corpus, both language reviews, the `from=` parser fix, the meaning comparison
-and normaliser, and the filter cutoff.
+and normaliser, the filter cutoff, the language on meanings along with the
+review of the languages it surfaced, the structural half of the
+derivation-meaning bleed, the rule that drops a meaning pointing at another
+name, and publishing both meanings and languages into the app's own tables.
 
 What is left, roughly in order:
 
-- **The language on meanings.** The derivation template's source code,
-  resolved through `wiktionary_language_codes`. The next build step, and cheap
-  now the table exists.
-- **The derivation-meaning bleed.** Around 11% of derivation meanings come from
-  a surname or common-noun entry sharing the language section. `subsection` is
-  recorded in evidence, so a rule can be written and re-run without fetching.
+- **The rest of the derivation-meaning bleed.** The useless half went with the
+  name-pointer rule. What is left is a surname's meaning written in real words
+  rather than a name — Becker as "baker", Ross as "headland" — which reads as a
+  meaning and cannot be told apart by pattern. Resolving the names the dropped
+  phrases pointed at is the other half of the answer.
 - **A model pass on what rules cannot reach**, measured against the current
-  baseline: the 895 over-length phrases and the 3,047 names whose only old
-  meaning is Wikipedia's opening paragraph.
-- **Publishing.** Nothing has been written to app-facing tables. `meanings`, its
-  bridge and `given_name_relationship_bridge` are still designs, and merging old
-  and new is now the premise they have to meet.
+  baseline: the 888 over-length phrases, the 3,047 names whose only old meaning
+  is Wikipedia's opening paragraph, and the 731 names holding meaning text that
+  no rule turns into a usable phrase — mostly Japanese names and prose.
+- **The backend switch.** Meanings and languages are published, but nothing
+  reads them yet: the app still serves `given_name_meaning` and the language
+  bridge exactly as before. Pointing the routes at the new tables, and dropping
+  the old table afterwards, is the next piece of work and lives in the backend
+  repo. Undecided there: whether a name's line shows every language on a meaning
+  or one — Kasper's "treasurer" is tagged Aramaic, Hebrew and Persian.
 - **Reports 001 and 005.** 001's meaning columns predate the merge and count
   only Wiktionary claims. 005 lists 5,801 names alphabetically when its purpose
   needs a per-language summary.
@@ -574,7 +649,8 @@ What is left, roughly in order:
   missing most of Latin America, a Brazilian culture (whose names are held by
   item identifier), and Bengalis in India — `Bangladeshi` is the only Bengal
   row.
-- **Flags.** The 162 languages added across 037 to 041 carry the 🌍 placeholder.
+- **Flags.** 193 languages carry the 🌍 placeholder, most of them added across
+  037 to 043.
 - **The Wikidata alias refresh** lacks the stale-row cleanup the Wiktionary one
   gained with the `from=` fix. Harmless until Wikidata extraction changes.
 - **Other-language Wiktionaries**, for the native-script gap above.

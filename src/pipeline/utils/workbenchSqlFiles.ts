@@ -17,6 +17,7 @@ const workbenchSqlFiles = [
   "012_seed_meaning_language_decisions.v1.sql",
   "013_normalised_meaning_language_key.v1.sql",
   "014_seed_meaning_remainder_decisions.v1.sql",
+  "015_curated_meanings.v1.sql",
 ].map((fileName) => path.join(workbenchBasePath, fileName));
 
 export default workbenchSqlFiles;
