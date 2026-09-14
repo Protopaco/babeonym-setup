@@ -52,6 +52,12 @@ structure that isn't tied to any single source.
 - They are **never created in production.** The workbench is needed once, not
   indefinitely, and there is no reason to pay to host it.
 - Production receives only published, app-facing data.
+- **Reference data moves from dev to prod; it is never regenerated in prod.**
+  Pipelines, seeds and publishing run against the local database. Prod is
+  then loaded by copying the app-facing tables across with their ids intact,
+  so ids agree between the two and prod never re-derives anything. First done
+  2026-09-13. Schema migrations are still run on each database; only the data
+  is copied.
 
 ---
 
