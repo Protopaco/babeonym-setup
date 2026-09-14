@@ -59,13 +59,38 @@ The deity rule, settled deliberately:
 Writing `shiva` or `vayu` lowercase is as wrong as writing `god` where the
 source meant the Abrahamic deity. Both are proper nouns and both get capitals.
 
+**The CSV keeps its capitals; publishing lowercases them.** `meanings` dedupes
+on exact text, so a curated `Bear` published beside the `bear` every un-curated
+name still points at would split one shared row in two. The capitals are not
+thrown away — they are held in `curated_meanings`, which is the ground truth for
+the pass that restores them over every meaning at once. That pass is dropping
+the `LOWER()` in the publish step, once curation covers every name and there is
+no raw row left to clash with. Until then the app shows lowercase, which is
+expected and is not a bug to fix here. Write the capitals properly regardless:
+they are the output this pass exists to produce, held back rather than unused.
+
 ### Condensing
 
 Work **per language**. Within one language, collapse restatements of one sense
 into a single curated row; across languages, never merge.
 
+**Fold only true restatements** — the same sense in different words: "gentle"
+and "mild", "noble" and "nobility", "defend" and "to ward off", "manly" and
+"man". **Keep separate any gloss naming a different property**, even a close
+one: "pliable" is not "gentle", "wreath" is not "crown", "humble" is not
+"small", "favour" is not "grace". When in doubt, keep both. A reader can ignore
+a shade they do not want; they cannot recover one that was folded away.
+
+The first pass over the top 150 erred the other way and had to be redone.
+Linda's "gentle", "mild", "pliable" and "limber" went to one row when they are
+three senses; Justin's five glosses went to one when they are three.
+Over-folding reads as tidy while quietly discarding what the extraction worked
+to find.
+
 - Edward's English rows "rich", "riches", "wealth" are one sense → `Wealth`.
   "guard" and "ward" are a second → `Guard`. Two curated rows, both English.
+- Linda's English rows are three, not one: `Gentle` (from "gentle" and "mild"),
+  `Pliable`, `Limber`.
 - Sophia's "wisdom" (Greek), "wisdom" (Greek) and "wisdom" (untagged) are one
   row → `Wisdom`, Greek.
 
@@ -93,8 +118,8 @@ back to the raw rows.
 
 ## Input
 
-Run this for the next batch, adjusting the offset. Names come in popularity
-order, because that is where the looking happens.
+Run this for the next batch. Names come in popularity order, because that is
+where the looking happens.
 
 ```sql
 WITH ranked AS (
@@ -102,6 +127,8 @@ WITH ranked AS (
          ROW_NUMBER() OVER (ORDER BY SUM(p.total_occurrences) DESC NULLS LAST, gn.given_name) AS rank
   FROM given_names gn
   LEFT JOIN given_name_popularity_by_decade p ON p.given_name_id = gn.id
+  WHERE EXISTS (SELECT 1 FROM normalised_meaning_candidates c WHERE c.given_name_id = gn.id)
+    AND NOT EXISTS (SELECT 1 FROM curated_meanings cm WHERE cm.given_name_id = gn.id)
   GROUP BY gn.id, gn.given_name
 )
 SELECT ranked.rank, ranked.given_name, c.text,
@@ -109,9 +136,24 @@ SELECT ranked.rank, ranked.given_name, c.text,
 FROM ranked
 JOIN normalised_meaning_candidates c ON c.given_name_id = ranked.id
 LEFT JOIN languages l ON l.id = c.language_id
-WHERE ranked.rank > :batch_start AND ranked.rank <= :batch_end
+WHERE ranked.rank <= 150
 ORDER BY ranked.rank, l.label NULLS LAST, c.confidence DESC;
 ```
+
+**The query advances itself.** It ranks among the names that have meanings and
+are not curated yet, so the batch that is done drops out and the next 150 take
+its place. There is no offset to track and none to get wrong; a batch number is
+only a file name.
+
+Ranking over every given name instead does not work, and it is worth knowing
+why. There are 104,819 of them and only 3,449 with meanings, and the ones that
+have meanings thin out fast — 364 in the first 500 ranks, 62 by rank 5,500, and
+the last of them at rank 104,493. A 150-rank window is most of a batch of real
+work at the top and nearly empty a few thousand ranks down, so covering
+everything that way takes hundreds of windows instead of 23.
+
+`EXISTS` rather than a join to the candidates, or `SUM(total_occurrences)` fans
+out across a name's meaning rows and the popularity order goes wrong.
 
 About 150 names per batch. Read every row for a name before writing its curated
 rows — the sense you need is often in the row with the lowest confidence.
@@ -162,6 +204,7 @@ it inherited.
 | Raw rows | Curated | Why |
 | --- | --- | --- |
 | rich, riches, wealth, guard, ward (English) | `Wealth` (English), `Guard` (English) | One sense each, restatements dropped |
+| gentle, mild, pliable, limber (English) | `Gentle` (English), `Pliable` (English), `Limber` (English) | Three properties, not one — only "gentle" and "mild" restate each other |
 | wisdom (Greek), wisdom (Greek), wisdom (untagged) | `Wisdom` (Greek) | Same sense; the tagged row wins |
 | who is like god? (Hebrew) | `Who is like God?` (Hebrew) | The specific deity, so a capital |
 | hindu god of the wind (Sanskrit) | `Hindu god of the wind` (Sanskrit) | Common noun; Vayu is the proper noun, not "god" |

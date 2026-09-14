@@ -326,6 +326,35 @@ structure that isn't tied to any single source.
   names and 60% of the top thousand, a language on 100% and 99%. Seventeen of
   the top hundred still have none, and some of those are the 25-character limit
   rather than a missing source: Jessica's only meaning is 27 characters long.
+- **A curation pass outranks the rules, per name** (2026-09-11). The normaliser
+  can drop what is clearly not a meaning, but not choose between five phrases
+  that are all defensible. Batch 001 read the top 150 names by popularity and
+  wrote 222 rows over 125 of them, cutting 426 raw pairings to 218. A name with
+  any curated row publishes those and nothing else, since the pass read the same
+  raw rows and publishing both would restore exactly what it dropped. Four names
+  are curated to nothing. Every other name publishes from the raw rows as
+  before, which makes partial curation an ordinary state rather than a
+  half-finished migration.
+- **Curated rows cite phrases, not row ids** (2026-09-11). The obvious key would
+  be the `normalised_meaning_candidates` id each curated line came from, and it
+  would rot within a run or two: that table is truncated and renumbered every
+  time the normaliser runs, and the normaliser is still changing. Phrases
+  survive it. The loader resolves each cited phrase back to the strongest
+  confidence it reached for that name — the same gloss can arrive from two
+  templates — and rejects the batch if a phrase has no raw row at all, which is
+  the check that catches a line invented rather than curated.
+- **Curated capitals wait for the capitalisation pass** (2026-09-11). The CSV is
+  written properly — "God is gracious", "Christ-bearer" — because a curator
+  reading a phrase writes it that way, and the judgment is worth keeping. It is
+  kept in `curated_meanings` rather than published: `meanings` dedupes on exact
+  text, so publishing "Bear" beside the "bear" every un-curated name already
+  points at would split one shared row in two and undo what the table is for.
+  168 of the 173 curated phrases already existed as a lowercase row. Publishing
+  lowercases, and the 173 become ground truth for the later pass over every
+  meaning at once.
+- **Republished on 2026-09-11**, with batch 001 preferred where it had run:
+  7,350 pairings across 3,445 names and 3,520 distinct meanings, of which 218
+  pairings on 121 names are curated.
 
 ---
 
@@ -622,10 +651,21 @@ corpus, both language reviews, the `from=` parser fix, the meaning comparison
 and normaliser, the filter cutoff, the language on meanings along with the
 review of the languages it surfaced, the structural half of the
 derivation-meaning bleed, the rule that drops a meaning pointing at another
-name, and publishing both meanings and languages into the app's own tables.
+name, publishing both meanings and languages into the app's own tables, and the
+first curation batch over the top 150 names.
 
 What is left, roughly in order:
 
+- **The rest of the curation pass.** Batch 001 covered the 125 most popular
+  names that have raw rows; 3,324 remain, at 150 a batch, so 23 of them. The
+  pass runs over every name that has a meaning, not down to a cutoff. Batches
+  advance themselves: the query ranks among names that have meanings and are not
+  curated yet, so there is no offset to track and a batch number is only a file
+  name. Publishing lowercases curated text while coverage is partial, because
+  curated capitals beside raw lowercase would split shared rows in `meanings`.
+  Once every name is curated there is no raw row left to clash with, and the
+  capitalisation the CSVs already carry arrives by dropping that `LOWER()` and
+  republishing.
 - **The rest of the derivation-meaning bleed.** The useless half went with the
   name-pointer rule. What is left is a surname's meaning written in real words
   rather than a name — Becker as "baker", Ross as "headland" — which reads as a

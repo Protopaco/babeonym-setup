@@ -206,7 +206,10 @@ const resolveRows = async (rows: CuratedRow[]) => {
       continue;
     }
 
-    const rowKey = `${givenNameId}|${row.text}|${languageId ?? ""}`;
+    // Case-insensitive, because publishing lowercases. "Bear" and "bear" on one
+    // name would read as two curated rows here and then collide on the bridge's
+    // unique constraint, which is a long way from the batch that caused it.
+    const rowKey = `${givenNameId}|${row.text.toLowerCase()}|${languageId ?? ""}`;
     const duplicatedRow = rowsAlreadySeen.get(rowKey);
 
     if (duplicatedRow !== undefined) {

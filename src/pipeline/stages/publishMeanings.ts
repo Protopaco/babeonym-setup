@@ -37,6 +37,15 @@ const PUBLISH_CONFIDENCE_FLOOR = "0.5";
  *
  * Meaning text is kept across runs and only removed when nothing points at it
  * any more, so ids stay stable for anything that has already referenced them.
+ *
+ * Curated text publishes as written, capitals and all — "God is gracious",
+ * "Christ-bearer". It was lowercased here for as long as the pass was partway
+ * through, because meanings dedupes on exact text and publishing "Bear" beside
+ * the "bear" an un-curated name still pointed at would have split one shared
+ * row into two. The pass now covers every name that has a raw row, so nothing
+ * publishes from the raw tier and there is no lowercase twin left to collide
+ * with. A curator reading a phrase writes it properly, and that judgment is
+ * what the app should show.
  */
 export default async () => {
   const client = await getClient();
