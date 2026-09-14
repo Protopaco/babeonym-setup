@@ -141,6 +141,21 @@ export default async () => {
       `,
     );
 
+    // A meaning's language is one the name is used in, so it belongs among the
+    // name's languages too — otherwise the page shows a meaning under Irish for
+    // a name that does not list Irish, and the language filter misses it. The
+    // language bridge is additive and carries no source column, so these rows
+    // stay even if a later run drops the meaning that added them.
+    const addedLanguages = await client.query(
+      `
+        INSERT INTO given_name_language_bridge (given_name_id, language_id)
+        SELECT DISTINCT bridge.given_name_id, bridge.language_id
+        FROM given_name_meaning_bridge bridge
+        WHERE bridge.language_id IS NOT NULL
+        ON CONFLICT (given_name_id, language_id) DO NOTHING
+      `,
+    );
+
     const removedMeanings = await client.query(
       `
         DELETE FROM meanings orphan
@@ -159,6 +174,9 @@ export default async () => {
     );
     console.log(
       `  ${bridged.rowCount} pairings written, ${insertedMeanings.rowCount} meanings added, ${removedMeanings.rowCount} no longer referenced and removed.`,
+    );
+    console.log(
+      `  ${addedLanguages.rowCount} name-language pairings added from meaning languages.`,
     );
 
     const summary = await query(
