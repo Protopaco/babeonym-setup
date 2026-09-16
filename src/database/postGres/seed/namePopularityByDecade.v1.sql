@@ -1,3 +1,8 @@
+-- The truncate and the rebuild are one unit: without a transaction the table sits
+-- empty while the rebuild runs, and a failure partway leaves it empty or partial,
+-- which returns nothing for every decade-filtered request until a re-run succeeds.
+BEGIN;
+
 -- Ensure decades exist
 INSERT INTO decades (decade, label)
 SELECT DISTINCT
@@ -60,12 +65,14 @@ SELECT
 
   r.total_occ AS total_occurrences,
 
-  (t.female_total::numeric / NULLIF(t.mf_total, 0)) AS female_share,
+  (COALESCE(t.female_total, 0)::numeric / NULLIF(t.mf_total, 0)) AS female_share,
 
-  ABS((t.female_total::numeric / NULLIF(t.mf_total, 0)) - 0.5) * 2 AS gender_difference,
+  ABS((COALESCE(t.female_total, 0)::numeric / NULLIF(t.mf_total, 0)) - 0.5) * 2 AS gender_difference,
 
   NOW() AS date_created
 FROM ranked r
 JOIN totals t
   ON t.given_name_id = r.given_name_id
  AND t.decade_id = r.decade_id;
+
+COMMIT;
