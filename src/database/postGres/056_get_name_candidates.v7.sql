@@ -1,0 +1,265 @@
+-- get_name_candidates (053) with the top band weighted towards the most popular
+-- names.
+--
+-- The top band picked flat at random, and it is wider than it looks: ranks are
+-- counted per gender, so ranks 1 to 500 hold about a thousand names. A name like
+-- Mary had roughly a 3–4% chance of appearing in a batch of 50, the same as a
+-- name ranked 480.
+--
+-- The top band now picks by -ln(1 - random()) * rank rather than random(). Each
+-- name draws a random number scaled by its rank and the smallest draws win, which
+-- gives each name a chance proportional to 1 / rank. Rank 1 is ten times as
+-- likely as rank 10, and nothing is ruled out. 1 - random() keeps the value away
+-- from ln(0). The second and third bands stay flat random: they exist to mix in
+-- less familiar names, and weighting them would only pull them back towards their
+-- own top edge.
+--
+-- The final order is still a plain shuffle, as in 053, so the less familiar names
+-- arrive mixed in throughout a batch rather than bunched at its end.
+--
+-- This applies with and without filters. The tiers and bands run on every call;
+-- only 053's rank ceiling is limited to the unfiltered path, and it is unchanged.
+-- With a decade filter the weighting uses that decade's rank. A pool under 300
+-- puts everything in the top band, so the weighting covers the whole pool.
+--
+-- The return type is unchanged, so CREATE OR REPLACE is enough. Re-running
+-- 053_get_name_candidates.v6.sql restores the previous behaviour.
+
+CREATE OR REPLACE FUNCTION get_name_candidates(
+  p_user_id INT,
+  p_gender_ids INT[] DEFAULT NULL,
+  p_decade_ids INT[] DEFAULT NULL,
+  p_language_ids INT[] DEFAULT NULL,
+  p_culture_ids INT[] DEFAULT NULL,
+  p_limit INT DEFAULT 50,
+  p_exclude_bridge_ids INT[] DEFAULT NULL
+)
+RETURNS TABLE (
+  out_given_custom_name_bridge_id INT,
+  out_given_name TEXT,
+  out_etymology JSON
+) AS $$
+DECLARE
+  v_genders gender[];
+  v_limit INT;
+  v_quota_1 INT;
+  v_quota_2 INT;
+  v_quota_3 INT;
+  v_offset INT;
+  v_rank_cap INT;
+BEGIN
+  -- Ids that resolve to nothing match nothing, rather than being read as an
+  -- absent filter. A silently ignored filter is the harder bug to notice.
+  IF p_gender_ids IS NOT NULL THEN
+    SELECT array_agg(g.value)
+    INTO v_genders
+    FROM genders g
+    WHERE g.id = ANY(p_gender_ids);
+  END IF;
+
+  v_limit   := GREATEST(1, COALESCE(NULLIF(p_limit, 0), 50));
+  v_quota_1 := ROUND(v_limit * 0.7);
+  v_quota_2 := ROUND(v_limit * 0.2);
+  v_quota_3 := v_limit - v_quota_1 - v_quota_2;
+
+  -- Null leaves scoped uncapped, which is 048's behaviour. Only the unfiltered
+  -- path sets a ceiling; see 053's header for why.
+  v_rank_cap := NULL;
+
+  IF p_gender_ids IS NULL
+     AND p_decade_ids IS NULL
+     AND p_language_ids IS NULL
+     AND p_culture_ids IS NULL
+  THEN
+    -- Driven from the user's own state rows, so the work is proportional to what
+    -- they have decided rather than to the whole name set. Measured at 2ms for a
+    -- user 228 names deep. The joins are here so a state row pointing at
+    -- something with no popularity row is not counted, matching scoped.
+    SELECT count(*)::int
+    INTO v_offset
+    FROM user_given_names_states u
+    WHERE u.user_id = p_user_id
+      AND u.state IN ('rejected', 'approved')
+      AND EXISTS (
+        SELECT 1
+        FROM given_custom_name_bridge b
+        JOIN given_names gn
+          ON gn.id = b.given_name_id
+        JOIN given_name_popularity_overall o
+          ON o.given_name_id = gn.id
+        WHERE b.id = u.given_custom_name_bridge_id
+      );
+
+    v_rank_cap := v_offset + 5000;
+  END IF;
+
+  RETURN QUERY
+  WITH source AS (
+    SELECT
+      d.given_name_id,
+      d.rank,
+      d.female_share,
+      d.gender_difference
+    FROM given_name_popularity_by_decade d
+    WHERE p_decade_ids IS NOT NULL
+      AND d.decade_id = ANY(p_decade_ids)
+
+    UNION ALL
+
+    SELECT
+      o.given_name_id,
+      o.rank,
+      o.female_share,
+      o.gender_difference
+    FROM given_name_popularity_overall o
+    WHERE p_decade_ids IS NULL
+  ),
+
+  -- One row per name, carrying its best rank across whatever was selected.
+  scoped AS (
+    SELECT
+      b.id AS bid,
+      gn.id AS given_name_id,
+      gn.given_name,
+      MIN(s.rank) AS rank
+    FROM source s
+    JOIN given_names gn
+      ON gn.id = s.given_name_id
+    JOIN given_custom_name_bridge b
+      ON b.given_name_id = gn.id
+
+    WHERE (
+        -- The tiers never reach past this, so nothing below it is loaded.
+        v_rank_cap IS NULL
+        OR s.rank <= v_rank_cap
+      )
+
+      AND (
+        p_gender_ids IS NULL
+        OR (
+          CASE
+            WHEN s.gender_difference IS NULL THEN NULL::gender
+            WHEN s.gender_difference <= 0.40 THEN 'neutral'::gender
+            WHEN s.female_share > 0.50 THEN 'female'::gender
+            ELSE 'male'::gender
+          END
+        ) = ANY(v_genders)
+      )
+
+      AND (
+        p_language_ids IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM given_name_language_bridge gnlb
+          WHERE gnlb.given_name_id = gn.id
+            AND gnlb.language_id = ANY(p_language_ids)
+        )
+      )
+
+      AND (
+        p_culture_ids IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM given_name_culture_bridge gncb
+          WHERE gncb.given_name_id = gn.id
+            AND gncb.culture_id = ANY(p_culture_ids)
+        )
+      )
+
+    GROUP BY b.id, gn.id, gn.given_name
+  ),
+
+  -- How far the bands have rolled: names already decided on under these filters.
+  -- Snoozes do not count, since a snoozed name comes back.
+  offset_counted AS (
+    SELECT count(*)::int AS n
+    FROM scoped s
+    JOIN user_given_names_states u
+      ON u.given_custom_name_bridge_id = s.bid
+     AND u.user_id = p_user_id
+     AND u.state IN ('rejected', 'approved')
+  ),
+
+  live AS (
+    SELECT s.*
+    FROM scoped s
+    WHERE (
+        p_exclude_bridge_ids IS NULL
+        OR s.bid <> ALL(p_exclude_bridge_ids)
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM user_given_names_states u
+        WHERE u.user_id = p_user_id
+          AND u.given_custom_name_bridge_id = s.bid
+          AND (
+            u.state IN ('rejected', 'approved')
+            OR (
+              u.state = 'snoozed'
+              AND u.date_created > NOW() - INTERVAL '24 hours'
+            )
+          )
+      )
+  ),
+
+  pool AS (
+    SELECT count(*)::int AS n FROM live
+  ),
+
+  tiered AS (
+    SELECT
+      l.bid,
+      l.given_name_id,
+      l.given_name,
+      l.rank,
+      CASE
+        -- Too small a pool for bands to mean anything; everything is tier one and
+        -- the backfill serves the rest.
+        WHEN (SELECT n FROM pool) < 300 THEN 1
+        WHEN l.rank <= (SELECT n FROM offset_counted) + 500  THEN 1
+        WHEN l.rank <= (SELECT n FROM offset_counted) + 2000 THEN 2
+        WHEN l.rank <= (SELECT n FROM offset_counted) + 5000 THEN 3
+        ELSE 4
+      END AS tier
+    FROM live l
+  ),
+
+  -- The top band favours popular names, each picked with a chance proportional
+  -- to 1 / rank; see the header. The other two stay flat random, so a batch is
+  -- not ranks 1, 2, 3, 4.
+  banded AS MATERIALIZED (
+    (SELECT t.bid, t.given_name_id, t.given_name, t.rank FROM tiered t WHERE t.tier = 1 ORDER BY -ln(1 - random()) * t.rank LIMIT v_quota_1)
+    UNION ALL
+    (SELECT t.bid, t.given_name_id, t.given_name, t.rank FROM tiered t WHERE t.tier = 2 ORDER BY random() LIMIT v_quota_2)
+    UNION ALL
+    (SELECT t.bid, t.given_name_id, t.given_name, t.rank FROM tiered t WHERE t.tier = 3 ORDER BY random() LIMIT v_quota_3)
+  ),
+
+  -- A band can come up short — narrow filters, or a roll that has outrun the
+  -- names. Top up from whatever is left, nearest ranks first, tier four included,
+  -- so a full batch is returned whenever the names exist to fill it.
+  filled AS MATERIALIZED (
+    SELECT b.bid, b.given_name_id, b.given_name FROM banded b
+
+    UNION ALL
+
+    (
+      SELECT t.bid, t.given_name_id, t.given_name
+      FROM tiered t
+      WHERE NOT EXISTS (SELECT 1 FROM banded b WHERE b.bid = t.bid)
+      ORDER BY t.rank, random()
+      LIMIT GREATEST(0, v_limit - (SELECT count(*)::int FROM banded))
+    )
+  )
+
+  -- Shuffled so the tiers arrive interleaved rather than in blocks; the app serves
+  -- these one at a time. Etymology is built here, for the returned rows only.
+  SELECT
+    f.bid,
+    f.given_name,
+    get_given_name_etymology(f.given_name_id)
+  FROM filled f
+  ORDER BY random();
+
+END;
+$$ LANGUAGE plpgsql;
